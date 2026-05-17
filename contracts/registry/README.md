@@ -1,10 +1,12 @@
 # Miden Name Service Registry Contract Scaffold
 
-This folder contains the first contract scaffold for the future Miden Name
+This folder contains the first Miden Assembly scaffold for the future Miden Name
 Service registry account.
 
-The registry is not connected to the UI yet. The current app still registers
-names using local React mock state only.
+The scaffold follows the official Miden mapping example for account
+`StorageMap` reads and writes. The app is wired to stop at a clear blocker until
+the registry account is deployed and the frontend transaction argument encoding
+is confirmed.
 
 ## SDK APIs Confirmed Locally
 
@@ -46,14 +48,19 @@ Each record should eventually store:
 
 ## Scaffold Files
 
+- `src/registry.masm`: Miden Assembly account component scaffold with
+  `register(nameHash, owner)` and `resolve(nameHash)`.
+- `src/register_name.masm`: transaction script scaffold for calling
+  `register`.
 - `src/registry.md`: contract-facing procedure scaffold.
 - `src/storage.md`: proposed storage layout and open questions.
 - `BUILD_NOTES.md`: build path, confirmed APIs, and missing pieces.
 
 ## Current Status
 
-This is a scaffold only. No executable Miden Assembly module or registry
-transaction client has been implemented yet.
+This is a scaffold only. The MASM source is based on official mapping syntax,
+but no registry deployment script or wallet transaction request builder is
+complete yet.
 
 Next implementation step:
 

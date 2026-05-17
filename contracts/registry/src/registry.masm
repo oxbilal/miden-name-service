@@ -1,0 +1,48 @@
+use.miden::active_account
+use.miden::native_account
+use.std::sys
+
+# Miden Name Service registry account component scaffold.
+#
+# Storage:
+# - slot 0: reserved empty value slot for account/component compatibility
+# - slot 1: StorageMap where key = nameHash Word and value = owner Word
+#
+# This follows the official Miden mapping example pattern:
+# - native_account::set_map_item writes to an account StorageMap
+# - active_account::get_map_item reads from an account StorageMap
+#
+# Inputs: [NAME_HASH, OWNER]
+# Outputs: []
+export.register
+    # The name registry map is in storage slot 1.
+    push.1
+    # => [index, NAME_HASH, OWNER]
+
+    exec.native_account::set_map_item
+    # => [OLD_MAP_ROOT, OLD_MAP_VALUE]
+
+    dropw dropw dropw dropw
+    # => []
+end
+
+# Inputs: [NAME_HASH]
+# Outputs: [OWNER]
+export.resolve
+    # The name registry map is in storage slot 1.
+    push.1
+    # => [index, NAME_HASH]
+
+    exec.active_account::get_map_item
+    # => [OWNER]
+end
+
+# Inputs: []
+# Outputs: [CURRENT_ROOT]
+export.get_registry_root
+    push.1 exec.active_account::get_item
+    # => [CURRENT_ROOT]
+
+    exec.sys::truncate_stack
+    # => [CURRENT_ROOT]
+end

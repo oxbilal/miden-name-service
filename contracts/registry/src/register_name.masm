@@ -1,0 +1,14 @@
+use.miden_name_service::registry
+
+# Transaction script scaffold for registering a name.
+#
+# Required stack inputs before call:
+# - NAME_HASH Word
+# - OWNER Word
+#
+# The frontend does not use this yet because the exact browser SDK wiring for
+# nameHash/owner Word encoding and registry ForeignAccount requirements is not
+# confirmed.
+begin
+    call.registry::register
+end

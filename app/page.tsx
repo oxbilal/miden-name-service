@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import {
+  Transaction,
   WalletMultiButton,
   useWallet,
 } from "@demox-labs/miden-wallet-adapter";
@@ -20,8 +21,8 @@ import {
   type MidenClient,
 } from "@/lib/midenClient";
 import { consumeFirstAvailableNote } from "@/lib/midenTransactions";
+import { createRegistryRegisterTransaction } from "@/lib/registryContract";
 import {
-  registerName as registerRegistryName,
   resolveName,
   type RegistryAdapterMode,
   type RegistryRecord,
@@ -49,6 +50,7 @@ type MidenClientStatus =
   | "connected"
   | "error";
 type TransactionStatus = "idle" | "submitting" | "success" | "error";
+type CustomTransactionStatus = "idle" | "requesting" | "success" | "error";
 
 function MidenLogo({ className = "h-8 w-8" }) {
   return (
@@ -121,6 +123,9 @@ export default function MidenNameService() {
     useState<TransactionStatus>("idle");
   const [transactionMessage, setTransactionMessage] = useState("");
   const [walletApiStatus, setWalletApiStatus] = useState("");
+  const [customTransactionStatus, setCustomTransactionStatus] =
+    useState<CustomTransactionStatus>("idle");
+  const [customTransactionMessage, setCustomTransactionMessage] = useState("");
   const midenClientRef = useRef<MidenClient | null>(null);
 
   const registeredNames = useMemo(
@@ -141,11 +146,6 @@ export default function MidenNameService() {
   const registryMode: RegistryAdapterMode =
     midenClientRef.current && midenAccountId ? "miden" : "local";
   const activeAccountId = walletAccountId ?? midenAccountId;
-  const activeAccountSource = walletAccountId
-    ? "wallet"
-    : midenAccountId
-      ? "local WebClient"
-      : "";
   const searchedName = useMemo(() => normalizeName(searchResult), [searchResult]);
   const isSearchValid = searchResult ? isValidName(searchResult) : false;
   const isTaken = searchedName ? unavailableNames.includes(searchedName) : false;
@@ -158,7 +158,8 @@ export default function MidenNameService() {
     ? unavailableNames.includes(normalizedRegisterName)
     : false;
   const canRegister =
-    Boolean(activeAccountId) &&
+    Boolean(walletAccountId) &&
+    typeof requestTransaction === "function" &&
     isRegisterNameValid &&
     !isRegisterTaken &&
     address.trim().length > 0;
@@ -233,6 +234,51 @@ export default function MidenNameService() {
     setWalletApiStatus(rows.join("\n"));
   }
 
+  async function handleTestCustomTransactionRequest() {
+    if (!walletAccountId) {
+      setCustomTransactionStatus("error");
+      setCustomTransactionMessage(
+        "Connect a Miden wallet before requesting a custom transaction.",
+      );
+      return;
+    }
+
+    if (typeof requestTransaction !== "function") {
+      setCustomTransactionStatus("error");
+      setCustomTransactionMessage(
+        "wallet.requestTransaction is not available from the connected adapter.",
+      );
+      return;
+    }
+
+    setCustomTransactionStatus("requesting");
+    setCustomTransactionMessage("");
+
+    try {
+      const { TransactionRequestBuilder } = await import("@demox-labs/miden-sdk");
+      const transactionRequest = new TransactionRequestBuilder().build();
+      const transaction = Transaction.createCustomTransaction(
+        walletAccountId,
+        walletAccountId,
+        transactionRequest,
+      );
+
+      const transactionId = await requestTransaction(transaction);
+
+      setCustomTransactionStatus("success");
+      setCustomTransactionMessage(
+        transactionId
+          ? `Wallet returned transaction id ${transactionId}.`
+          : "Wallet accepted the custom transaction request.",
+      );
+    } catch (error) {
+      setCustomTransactionStatus("error");
+      setCustomTransactionMessage(
+        error instanceof Error ? error.message : String(error),
+      );
+    }
+  }
+
   function handleSearch(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSearchResult(query);
@@ -269,10 +315,18 @@ export default function MidenNameService() {
     event.preventDefault();
     const nextName = normalizeName(registerName);
 
-    if (!activeAccountId) {
+    if (!walletAccountId) {
       setRegisterMessageType("error");
       setRegisterMessage(
-        "Connect a Miden wallet or use a local WebClient account before registering.",
+        "Connect a Miden wallet before requesting a registry transaction.",
+      );
+      return;
+    }
+
+    if (typeof requestTransaction !== "function") {
+      setRegisterMessageType("error");
+      setRegisterMessage(
+        "Connected wallet adapter does not expose requestTransaction.",
       );
       return;
     }
@@ -296,24 +350,20 @@ export default function MidenNameService() {
     }
 
     try {
-      // TODO: replace this local mock registration with the real onchain
-      // registry account transaction once custom account component +
-      // StorageMap write syntax is confirmed.
-      const result = await registerRegistryName({
-        mode: "local",
+      const transaction = await createRegistryRegisterTransaction({
         name: nextName,
-        owner: activeAccountId,
+        owner: walletAccountId,
         target: address.trim(),
-        state: registryState,
       });
+      const transactionId = await requestTransaction(transaction);
 
-      setMockNames(result.state.records);
       setRegisterName(nextName);
       setRegisterMessageType("success");
-      setRegisterMessage(`${nextName} added to My Names.`);
-      setSelectedName("");
-      setSearchResult("");
-      setResolvedRecord(result.record);
+      setRegisterMessage(
+        transactionId
+          ? `Wallet accepted registry transaction request ${transactionId}.`
+          : "Wallet accepted the registry transaction request.",
+      );
     } catch (error) {
       setRegisterMessageType("error");
       setRegisterMessage(error instanceof Error ? error.message : String(error));
@@ -531,6 +581,45 @@ export default function MidenNameService() {
             )}
           </div>
 
+          <div className="mx-auto mt-4 max-w-2xl rounded-2xl border border-orange-200/10 bg-[#1b140e]/60 p-4 text-left">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-orange-100">
+                  Custom Transaction Test
+                </p>
+                <p className="mt-1 text-sm text-orange-100/50">
+                  Requests an empty custom transaction through the wallet
+                  adapter. No registry write is included.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleTestCustomTransactionRequest}
+                disabled={
+                  customTransactionStatus === "requesting" || !walletAccountId
+                }
+                className="rounded-2xl bg-orange-500 px-4 py-2 text-sm font-bold text-white hover:bg-orange-400 disabled:cursor-not-allowed disabled:bg-orange-100/20 disabled:text-orange-100/40"
+              >
+                {customTransactionStatus === "requesting"
+                  ? "Requesting"
+                  : "Test custom transaction request"}
+              </button>
+            </div>
+
+            {customTransactionMessage && (
+              <p
+                className={`mt-3 rounded-2xl px-4 py-3 text-sm ${
+                  customTransactionStatus === "success"
+                    ? "bg-emerald-400/10 text-emerald-200"
+                    : "bg-red-500/10 text-red-200"
+                }`}
+              >
+                {customTransactionMessage}
+              </p>
+            )}
+          </div>
+
           {(midenAccountId || midenClientError) && (
             <div className="mx-auto mt-4 max-w-2xl rounded-2xl border border-orange-200/10 bg-black/20 px-4 py-3 text-left">
               {midenAccountId && (
@@ -648,16 +737,19 @@ export default function MidenNameService() {
                 />
               </div>
 
-              {activeAccountId ? (
+              {walletAccountId ? (
                 <p className="mt-4 rounded-2xl bg-orange-100/5 px-4 py-3 text-sm text-orange-100/70">
-                  Registering locally with {activeAccountSource} owner{" "}
-                  <span className="font-mono">{shortenAddress(activeAccountId)}</span>.
-                  Onchain registry write is not implemented yet.
+                  Register will request a Miden Wallet custom transaction from{" "}
+                  <span className="font-mono">
+                    {shortenAddress(walletAccountId)}
+                  </span>
+                  . Registry storage is blocked until the registry
+                  account/contract exists.
                 </p>
               ) : (
                 <p className="mt-4 rounded-2xl bg-orange-100/5 px-4 py-3 text-sm text-orange-100/70">
-                  Connect a Miden wallet, or use the local WebClient fallback, to
-                  register this name.
+                  Connect a Miden wallet to request a registry transaction.
+                  Local mock registration is disabled.
                 </p>
               )}
 
@@ -708,9 +800,9 @@ export default function MidenNameService() {
                 disabled={!canRegister}
                 className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 px-6 py-3 font-bold text-white hover:bg-orange-400 disabled:cursor-not-allowed disabled:bg-orange-100/20 disabled:text-orange-100/40"
               >
-                {activeAccountId
+                {walletAccountId
                   ? "Register name"
-                  : "Connect Miden wallet or local account first"}
+                  : "Connect Miden wallet first"}
               </button>
             </motion.form>
           )}

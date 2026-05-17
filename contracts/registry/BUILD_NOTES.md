@@ -20,21 +20,31 @@ that appear relevant for a registry account/component build path:
 These names come from
 `node_modules/@demox-labs/miden-sdk/dist/crates/miden_client_web.d.ts`.
 
-## Why This Is Not Buildable Yet
+## MASM Scaffold Added
 
-This repo does not yet have enough confirmed contract tooling to build a real
-registry account. Missing pieces:
+`src/registry.masm` now follows the official Miden mapping example:
 
-- Confirmed Miden Assembly source syntax for account components.
-- Confirmed storage slot declarations for a name registry map.
+- `native_account::set_map_item` writes `nameHash -> owner` into storage slot 1.
+- `active_account::get_map_item` resolves `nameHash` from storage slot 1.
+- `src/register_name.masm` is a transaction script scaffold for calling
+  `register`.
+
+## Why This Is Not Fully Buildable Yet
+
+This repo now has MASM scaffolding, but it still does not have enough confirmed
+browser-side tooling to produce a real wallet registry transaction. Missing
+pieces:
+
 - A build script that reads contract source and calls `AccountComponent.compile`.
 - A local test harness that creates the registry account with `AccountBuilder`.
-- A transaction script format for calling registry procedures from a user
-  account.
+- Confirmed `nameHash Word` encoding from normalized `.miden` names.
+- Confirmed owner account id to `Word` encoding.
+- Confirmed `ForeignAccount` storage requirements for calling the public
+  registry account from a wallet-originated transaction.
 - A known registry account deployment/import workflow.
 
-Because those pieces are not present, this scaffold intentionally avoids adding
-an executable `.masm` file with guessed syntax.
+Because those pieces are not present, the frontend Register action intentionally
+does not send an empty custom transaction.
 
 ## Expected Build Path
 
@@ -53,6 +63,15 @@ Once the missing pieces are confirmed, the registry build should look like:
 ## Build Command Placeholder
 
 No build command is available yet.
+
+I checked `node_modules/.bin` and the current environment for `miden` and
+`miden-client`; neither command is installed. I also tried compiling
+`src/registry.masm` directly with the installed npm SDK from Node, but the SDK's
+generated WASM loader failed before MASM compilation with `TypeError: fetch
+failed`.
+
+See `docs/registry-build-blocker.md` for the exact command attempted and the
+missing official build/deploy runner.
 
 When the build script exists, add one of these:
 
