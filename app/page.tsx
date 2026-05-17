@@ -15,18 +15,27 @@ import {
   createOrLoadAccount,
   type MidenClient,
 } from "@/lib/midenClient";
+import {
+  registerName as registerRegistryName,
+  resolveName,
+  type RegistryRecord,
+} from "@/lib/registryAdapter";
 
 const takenNames = ["miden.miden", "admin.miden", "bilal.miden"];
 const initialNames = [
-  { name: "alpha.miden", address: "0x9f2a...miden", status: "Active" },
-  { name: "vault.miden", address: "0x71bc...miden", status: "Active" },
+  {
+    name: "alpha.miden",
+    owner: "0x9f2a...miden",
+    target: "0x9f2a...miden",
+    status: "Active" as const,
+  },
+  {
+    name: "vault.miden",
+    owner: "0x71bc...miden",
+    target: "0x71bc...miden",
+    status: "Active" as const,
+  },
 ];
-
-type NameRecord = {
-  name: string;
-  address: string;
-  status: string;
-};
 
 type MidenClientStatus =
   | "disconnected"
@@ -83,12 +92,15 @@ export default function MidenNameService() {
   >("");
   const [midenClientError, setMidenClientError] = useState("");
   const [selectedName, setSelectedName] = useState("");
-  const [mockNames, setMockNames] = useState<NameRecord[]>(initialNames);
+  const [mockNames, setMockNames] = useState<RegistryRecord[]>(initialNames);
   const [registerMessage, setRegisterMessage] = useState("");
   const [registerMessageType, setRegisterMessageType] = useState<
     "success" | "error"
   >("success");
   const [copiedName, setCopiedName] = useState("");
+  const [resolvedRecord, setResolvedRecord] = useState<RegistryRecord | null>(
+    null,
+  );
   const midenClientRef = useRef<MidenClient | null>(null);
 
   const registeredNames = useMemo(
@@ -98,6 +110,13 @@ export default function MidenNameService() {
   const unavailableNames = useMemo(
     () => [...takenNames, ...registeredNames],
     [registeredNames],
+  );
+  const registryState = useMemo(
+    () => ({
+      records: mockNames,
+      reservedNames: takenNames,
+    }),
+    [mockNames],
   );
   const searchedName = useMemo(() => normalizeName(searchResult), [searchResult]);
   const isSearchValid = searchResult ? isValidName(searchResult) : false;
@@ -141,6 +160,14 @@ export default function MidenNameService() {
     setSearchResult(query);
     setSelectedName("");
     setRegisterMessage("");
+    setResolvedRecord(null);
+
+    const nextName = normalizeName(query);
+    if (!nextName || !isValidName(query)) return;
+
+    void resolveName({ name: nextName, state: registryState }).then((record) => {
+      setResolvedRecord(record);
+    });
   }
 
   function chooseAvailableName() {
@@ -154,7 +181,7 @@ export default function MidenNameService() {
     }
   }
 
-  function handleRegister(event: React.FormEvent<HTMLFormElement>) {
+  async function handleRegister(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const nextName = normalizeName(registerName);
 
@@ -182,25 +209,34 @@ export default function MidenNameService() {
       return;
     }
 
-    // Next step: replace this mock state write with a registry account/contract call.
-    setMockNames((currentNames) => [
-      { name: nextName, address: address.trim(), status: "Active" },
-      ...currentNames,
-    ]);
-    setRegisterName(nextName);
-    setRegisterMessageType("success");
-    setRegisterMessage(`${nextName} added to My Names.`);
-    setSelectedName("");
-    setSearchResult("");
+    try {
+      const result = await registerRegistryName({
+        name: nextName,
+        owner: midenAccountId,
+        target: address.trim(),
+        state: registryState,
+      });
+
+      setMockNames(result.state.records);
+      setRegisterName(nextName);
+      setRegisterMessageType("success");
+      setRegisterMessage(`${nextName} added to My Names.`);
+      setSelectedName("");
+      setSearchResult("");
+      setResolvedRecord(result.record);
+    } catch (error) {
+      setRegisterMessageType("error");
+      setRegisterMessage(error instanceof Error ? error.message : String(error));
+    }
   }
 
-  async function copyAddress(item: NameRecord) {
+  async function copyAddress(item: RegistryRecord) {
     try {
-      await navigator.clipboard.writeText(item.address);
+      await navigator.clipboard.writeText(item.target);
       setCopiedName(item.name);
     } catch {
       const textarea = document.createElement("textarea");
-      textarea.value = item.address;
+      textarea.value = item.target;
       textarea.setAttribute("readonly", "");
       textarea.style.position = "fixed";
       textarea.style.opacity = "0";
@@ -316,7 +352,11 @@ export default function MidenNameService() {
                     <XCircle className="h-5 w-5 shrink-0" />
                     <div>
                       <p className="font-semibold">{searchedName}</p>
-                      <p className="text-sm text-red-200/70">Unavailable</p>
+                      <p className="text-sm text-red-200/70">
+                        {resolvedRecord
+                          ? `Resolves to ${shortenAddress(resolvedRecord.target)}`
+                          : "Unavailable"}
+                      </p>
                     </div>
                   </div>
                 ) : (
@@ -459,7 +499,7 @@ export default function MidenNameService() {
                   <div>
                     <p className="text-lg font-bold">{item.name}</p>
                     <p className="mt-2 font-mono text-sm text-orange-100/50">
-                      {item.address}
+                      {item.target}
                     </p>
                   </div>
 
