@@ -4,20 +4,26 @@ import React, { useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import {
   Search,
-  Wallet,
   CheckCircle2,
   XCircle,
   Copy,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import {
+  WalletMultiButton,
+  useWallet,
+} from "@demox-labs/miden-wallet-adapter";
+import {
   createMidenClient,
   createOrLoadAccount,
+  type MidenAccountId,
   type MidenClient,
 } from "@/lib/midenClient";
+import { consumeFirstAvailableNote } from "@/lib/midenTransactions";
 import {
   registerName as registerRegistryName,
   resolveName,
+  type RegistryAdapterMode,
   type RegistryRecord,
 } from "@/lib/registryAdapter";
 
@@ -42,6 +48,7 @@ type MidenClientStatus =
   | "connecting"
   | "connected"
   | "error";
+type TransactionStatus = "idle" | "submitting" | "success" | "error";
 
 function MidenLogo({ className = "h-8 w-8" }) {
   return (
@@ -80,6 +87,11 @@ function shortenAddress(value: string) {
 }
 
 export default function MidenNameService() {
+  const {
+    address: walletAccountId,
+    connected: walletConnected,
+    connecting: walletConnecting,
+  } = useWallet();
   const [query, setQuery] = useState("bilal");
   const [searchResult, setSearchResult] = useState("");
   const [registerName, setRegisterName] = useState("gamma.miden");
@@ -87,6 +99,8 @@ export default function MidenNameService() {
   const [midenClientStatus, setMidenClientStatus] =
     useState<MidenClientStatus>("disconnected");
   const [midenAccountId, setMidenAccountId] = useState("");
+  const [midenAccountIdObject, setMidenAccountIdObject] =
+    useState<MidenAccountId | null>(null);
   const [midenAccountSource, setMidenAccountSource] = useState<
     "loaded" | "created" | ""
   >("");
@@ -101,6 +115,9 @@ export default function MidenNameService() {
   const [resolvedRecord, setResolvedRecord] = useState<RegistryRecord | null>(
     null,
   );
+  const [transactionStatus, setTransactionStatus] =
+    useState<TransactionStatus>("idle");
+  const [transactionMessage, setTransactionMessage] = useState("");
   const midenClientRef = useRef<MidenClient | null>(null);
 
   const registeredNames = useMemo(
@@ -118,6 +135,8 @@ export default function MidenNameService() {
     }),
     [mockNames],
   );
+  const registryMode: RegistryAdapterMode =
+    midenClientRef.current && midenAccountId ? "miden" : "local";
   const searchedName = useMemo(() => normalizeName(searchResult), [searchResult]);
   const isSearchValid = searchResult ? isValidName(searchResult) : false;
   const isTaken = searchedName ? unavailableNames.includes(searchedName) : false;
@@ -142,16 +161,53 @@ export default function MidenNameService() {
     try {
       const client = midenClientRef.current ?? (await createMidenClient());
       midenClientRef.current = client;
-      const { accountId, source } = await createOrLoadAccount(client);
+      const { accountId, accountIdObject, source } =
+        await createOrLoadAccount(client);
 
       setMidenAccountId(accountId);
+      setMidenAccountIdObject(accountIdObject);
       setMidenAccountSource(source);
       setAddress(accountId);
+      setTransactionMessage("");
+      setTransactionStatus("idle");
       setMidenClientStatus("connected");
     } catch (error) {
       console.error(error);
       setMidenClientError(error instanceof Error ? error.message : String(error));
       setMidenClientStatus("error");
+    }
+  }
+
+  async function handleConsumeFirstNote() {
+    if (!midenClientRef.current || !midenAccountIdObject) {
+      setTransactionStatus("error");
+      setTransactionMessage("Connect a Miden account before sending a transaction.");
+      return;
+    }
+
+    setTransactionStatus("submitting");
+    setTransactionMessage("");
+
+    try {
+      const result = await consumeFirstAvailableNote(
+        midenClientRef.current,
+        midenAccountIdObject,
+      );
+
+      setTransactionStatus("success");
+      setTransactionMessage(
+        `Consumed note ${shortenAddress(result.noteId)} in transaction ${shortenAddress(
+          result.transactionId,
+        )}.`,
+      );
+    } catch (error) {
+      setTransactionStatus("error");
+      const message = error instanceof Error ? error.message : String(error);
+      setTransactionMessage(
+        message.includes("No consumable notes found")
+          ? "No consumable notes yet. This is normal."
+          : message,
+      );
     }
   }
 
@@ -165,7 +221,13 @@ export default function MidenNameService() {
     const nextName = normalizeName(query);
     if (!nextName || !isValidName(query)) return;
 
-    void resolveName({ name: nextName, state: registryState }).then((record) => {
+    void resolveName({
+      mode: registryMode,
+      name: nextName,
+      state: registryState,
+      client: midenClientRef.current,
+      accountId: midenAccountId,
+    }).then((record) => {
       setResolvedRecord(record);
     });
   }
@@ -211,10 +273,13 @@ export default function MidenNameService() {
 
     try {
       const result = await registerRegistryName({
+        mode: registryMode,
         name: nextName,
         owner: midenAccountId,
         target: address.trim(),
         state: registryState,
+        client: midenClientRef.current,
+        accountId: midenAccountId,
       });
 
       setMockNames(result.state.records);
@@ -272,19 +337,14 @@ export default function MidenNameService() {
           <a href="#names" className="hover:text-white">
             My Names
           </a>
-          <button
-            type="button"
-            onClick={handleConnectMidenClient}
-            disabled={midenClientStatus === "connecting"}
-            className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-2 font-semibold text-zinc-950 hover:bg-zinc-200 disabled:cursor-wait disabled:bg-zinc-200"
-          >
-            <Wallet className="h-4 w-4" />
-            {midenAccountId
-              ? shortenAddress(midenAccountId)
-              : midenClientStatus === "connecting"
-                ? "Connecting"
-                : "Connect Wallet"}
-          </button>
+          <div className="flex items-center gap-3">
+            {walletAccountId && (
+              <span className="hidden rounded-full bg-orange-100/5 px-3 py-1 font-mono text-xs text-orange-100/70 sm:inline-flex">
+                {shortenAddress(walletAccountId)}
+              </span>
+            )}
+            <WalletMultiButton className="!rounded-2xl !bg-white !px-4 !py-2 !text-sm !font-semibold !text-zinc-950 hover:!bg-zinc-200" />
+          </div>
         </div>
       </nav>
 
@@ -384,6 +444,22 @@ export default function MidenNameService() {
           <div className="mx-auto mt-5 flex max-w-2xl flex-col items-center justify-center gap-3 text-sm text-orange-100/60 sm:flex-row">
             <span
               className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                walletConnected
+                  ? "bg-emerald-400/10 text-emerald-200"
+                  : walletConnecting
+                    ? "bg-orange-400/10 text-orange-200"
+                    : "bg-white/5 text-orange-100/60"
+              }`}
+            >
+              Wallet adapter:{" "}
+              {walletConnected
+                ? "connected"
+                : walletConnecting
+                  ? "connecting"
+                  : "disconnected"}
+            </span>
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-semibold ${
                 midenClientStatus === "connected"
                   ? "bg-emerald-400/10 text-emerald-200"
                   : midenClientStatus === "error"
@@ -393,16 +469,24 @@ export default function MidenNameService() {
                       : "bg-white/5 text-orange-100/60"
               }`}
             >
-              Miden client: {midenClientStatus}
+              Local WebClient: {midenClientStatus}
             </span>
           </div>
+          {walletAccountId && (
+            <p className="mx-auto mt-3 max-w-2xl break-all font-mono text-sm text-orange-100/60">
+              Wallet accountId: {walletAccountId}
+            </p>
+          )}
 
           {(midenAccountId || midenClientError) && (
             <div className="mx-auto mt-4 max-w-2xl rounded-2xl border border-orange-200/10 bg-black/20 px-4 py-3 text-left">
               {midenAccountId && (
                 <div>
                   <p className="text-xs font-semibold uppercase text-orange-100/40">
-                    Miden account {midenAccountSource}
+                    Miden Account {midenAccountSource}
+                  </p>
+                  <p className="mt-1 text-xs text-orange-100/50">
+                    Local Miden account via WebClient
                   </p>
                   <p className="mt-1 break-all font-mono text-sm text-orange-100">
                     {midenAccountId}
@@ -418,6 +502,59 @@ export default function MidenNameService() {
                     {midenClientError}
                   </p>
                 </div>
+              )}
+            </div>
+          )}
+
+          {!midenAccountId && (
+            <button
+              type="button"
+              onClick={handleConnectMidenClient}
+              disabled={midenClientStatus === "connecting"}
+              className="mx-auto mt-4 rounded-2xl border border-orange-200/10 bg-orange-100/5 px-4 py-2 text-sm font-semibold text-orange-100/80 hover:bg-orange-100/10 disabled:cursor-wait disabled:text-orange-100/40"
+            >
+              {midenClientStatus === "connecting"
+                ? "Creating local WebClient account"
+                : "Use local WebClient account"}
+            </button>
+          )}
+
+          {midenAccountId && (
+            <div className="mx-auto mt-4 max-w-2xl rounded-2xl border border-orange-200/10 bg-[#1b140e]/70 p-4 text-left">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-orange-100">
+                    Transaction Test
+                  </p>
+                  <p className="mt-1 text-sm text-orange-100/50">
+                    Consume the first available note for this local account.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleConsumeFirstNote}
+                  disabled={transactionStatus === "submitting"}
+                  className="rounded-2xl bg-orange-500 px-4 py-2 text-sm font-bold text-white hover:bg-orange-400 disabled:cursor-wait disabled:bg-orange-100/20 disabled:text-orange-100/40"
+                >
+                  {transactionStatus === "submitting"
+                    ? "Testing transaction"
+                    : "Test Miden transaction"}
+                </button>
+              </div>
+
+              {transactionMessage && (
+                <p
+                  className={`mt-3 rounded-2xl px-4 py-3 text-sm ${
+                    transactionStatus === "success"
+                      ? "bg-emerald-400/10 text-emerald-200"
+                      : "bg-orange-100/5 text-orange-100/70"
+                  }`}
+                >
+                  {transactionStatus === "success"
+                    ? `Success: ${transactionMessage}`
+                    : transactionMessage}
+                </p>
               )}
             </div>
           )}
@@ -472,9 +609,8 @@ export default function MidenNameService() {
                 disabled={!canRegister}
                 className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 px-6 py-3 font-bold text-white hover:bg-orange-400 disabled:cursor-not-allowed disabled:bg-orange-100/20 disabled:text-orange-100/40"
               >
-                <Wallet className="h-5 w-5" />{" "}
                 {midenAccountId
-                  ? "Register with Miden account"
+                  ? "Register with Miden Account"
                   : "Create/load Miden account first"}
               </button>
             </motion.form>
