@@ -49,7 +49,6 @@ type MidenClientStatus =
   | "connected"
   | "error";
 type TransactionStatus = "idle" | "submitting" | "success" | "error";
-type IntentSignatureStatus = "idle" | "signing" | "success" | "error";
 
 function MidenLogo({ className = "h-8 w-8" }) {
   return (
@@ -87,10 +86,6 @@ function shortenAddress(value: string) {
   return `${clean.slice(0, 8)}...${clean.slice(-5)}`;
 }
 
-function bytesToHex(bytes: Uint8Array) {
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
 export default function MidenNameService() {
   const {
     address: walletAccountId,
@@ -98,7 +93,6 @@ export default function MidenNameService() {
     connecting: walletConnecting,
     publicKey: walletPublicKey,
     requestTransaction,
-    signBytes,
   } = useWallet();
   const [query, setQuery] = useState("bilal");
   const [searchResult, setSearchResult] = useState("");
@@ -127,10 +121,6 @@ export default function MidenNameService() {
     useState<TransactionStatus>("idle");
   const [transactionMessage, setTransactionMessage] = useState("");
   const [walletApiStatus, setWalletApiStatus] = useState("");
-  const [intentSignatureStatus, setIntentSignatureStatus] =
-    useState<IntentSignatureStatus>("idle");
-  const [intentSignatureMessage, setIntentSignatureMessage] = useState("");
-  const [intentSignatureHex, setIntentSignatureHex] = useState("");
   const midenClientRef = useRef<MidenClient | null>(null);
 
   const registeredNames = useMemo(
@@ -237,7 +227,7 @@ export default function MidenNameService() {
       `requestTransaction: ${
         typeof requestTransaction === "function" ? "available" : "missing"
       }`,
-      `signBytes: ${typeof signBytes === "function" ? "available" : "missing"}`,
+      `signBytes: available but disabled for register intent until Word/SigningInputs format is confirmed`,
     ];
 
     setWalletApiStatus(rows.join("\n"));
@@ -270,60 +260,8 @@ export default function MidenNameService() {
     setSelectedName(searchedName);
     setRegisterName(searchedName);
     setRegisterMessage("");
-    setIntentSignatureStatus("idle");
-    setIntentSignatureMessage("");
-    setIntentSignatureHex("");
     if (activeAccountId) {
       setAddress(activeAccountId);
-    }
-  }
-
-  async function handleSignRegisterIntent() {
-    if (!selectedName) {
-      setIntentSignatureStatus("error");
-      setIntentSignatureMessage("Choose an available name before signing.");
-      return;
-    }
-
-    if (!walletAccountId) {
-      setIntentSignatureStatus("error");
-      setIntentSignatureMessage("Connect Miden Wallet before signing.");
-      return;
-    }
-
-    if (typeof signBytes !== "function") {
-      setIntentSignatureStatus("error");
-      setIntentSignatureMessage("Wallet signBytes API is not available.");
-      return;
-    }
-
-    setIntentSignatureStatus("signing");
-    setIntentSignatureMessage("");
-    setIntentSignatureHex("");
-
-    const payload = {
-      type: "miden-name-service/register-intent",
-      name: selectedName,
-      walletAddress: walletAccountId,
-      timestamp: new Date().toISOString(),
-    };
-    const encodedPayload = new TextEncoder().encode(JSON.stringify(payload));
-
-    try {
-      const signature = await signBytes(encodedPayload, "signingInputs");
-
-      setIntentSignatureStatus("success");
-      setIntentSignatureMessage(
-        `Signed register intent for ${selectedName} with ${shortenAddress(
-          walletAccountId,
-        )}.`,
-      );
-      setIntentSignatureHex(bytesToHex(signature));
-    } catch (error) {
-      setIntentSignatureStatus("error");
-      setIntentSignatureMessage(
-        error instanceof Error ? error.message : String(error),
-      );
     }
   }
 
@@ -738,33 +676,18 @@ export default function MidenNameService() {
 
                     <button
                       type="button"
-                      onClick={handleSignRegisterIntent}
-                      disabled={intentSignatureStatus === "signing"}
+                      disabled
                       className="rounded-2xl bg-white px-4 py-2 text-sm font-bold text-zinc-950 hover:bg-zinc-200 disabled:cursor-wait disabled:bg-white/20 disabled:text-orange-100/40"
                     >
-                      {intentSignatureStatus === "signing"
-                        ? "Signing"
-                        : "Sign register intent"}
+                      Sign register intent
                     </button>
                   </div>
 
-                  {intentSignatureMessage && (
-                    <p
-                      className={`mt-3 rounded-2xl px-4 py-3 text-sm ${
-                        intentSignatureStatus === "success"
-                          ? "bg-emerald-400/10 text-emerald-200"
-                          : "bg-red-500/10 text-red-200"
-                      }`}
-                    >
-                      {intentSignatureMessage}
-                    </p>
-                  )}
-
-                  {intentSignatureHex && (
-                    <p className="mt-3 break-all rounded-2xl bg-black/30 px-4 py-3 font-mono text-xs text-orange-100/70">
-                      signature: 0x{intentSignatureHex}
-                    </p>
-                  )}
+                  <p className="mt-3 rounded-2xl bg-orange-100/5 px-4 py-3 text-sm text-orange-100/70">
+                    Signing disabled: wallet adapter expects Word or
+                    SigningInputs bytes, but the register intent format is not
+                    confirmed yet.
+                  </p>
                 </div>
               )}
 
