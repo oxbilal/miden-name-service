@@ -85,9 +85,10 @@ client.compile.txScript({ code, libraries? })
 client.compile.noteScript({ code, libraries? })
 ```
 
-The browser helper in `lib/midenClient.ts` now dynamically imports
-`@miden-sdk/miden-sdk/lazy` and creates a `MidenClient` with
-`MidenClient.createTestnet()`.
+The browser helper in `lib/midenClient.ts` now dynamically imports the confirmed
+package root export, `@miden-sdk/miden-sdk`, and creates a `MidenClient` with
+`MidenClient.createTestnet()`. The import stays inside a `typeof window` guarded
+function so Next.js SSR does not import the WASM-backed SDK during prerender.
 
 ## Contract account types
 

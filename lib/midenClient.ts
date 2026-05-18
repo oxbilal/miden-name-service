@@ -1,5 +1,5 @@
 export type MidenClient = Awaited<
-  ReturnType<typeof import("@miden-sdk/miden-sdk/lazy").MidenClient.createTestnet>
+  ReturnType<typeof import("@miden-sdk/miden-sdk").MidenClient.createTestnet>
 >;
 export type MidenAccount = Awaited<ReturnType<MidenClient["accounts"]["create"]>>;
 export type MidenAccountId = string;
@@ -9,7 +9,7 @@ export async function createMidenClient(): Promise<MidenClient> {
     throw new Error("MidenClient can only be created in the browser.");
   }
 
-  const { MidenClient } = await import("@miden-sdk/miden-sdk/lazy");
+  const { MidenClient } = await import("@miden-sdk/miden-sdk");
   await MidenClient.ready();
   return MidenClient.createTestnet();
 }

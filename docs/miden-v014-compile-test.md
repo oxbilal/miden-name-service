@@ -31,7 +31,8 @@ treats it as the mutable-contract-equivalent value for this compile smoke test.
 - `lib/midenCompileTest.ts`
   - exports `compileMinimalMutableContract(client)`
   - exports `compileMinimalRegistryComponent(client)`
-  - imports `AccountType` dynamically from `@miden-sdk/miden-sdk/lazy`
+  - imports `AccountType` dynamically from the confirmed package root export,
+    `@miden-sdk/miden-sdk`
   - calls `client.compile.component(...)`
   - returns procedure count, procedure names, and procedure hashes when available
 

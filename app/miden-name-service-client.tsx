@@ -291,7 +291,7 @@ export default function MidenNameService() {
 
     try {
       const { MidenClient, TransactionRequestBuilder } = await import(
-        "@miden-sdk/miden-sdk/lazy"
+        "@miden-sdk/miden-sdk"
       );
       await MidenClient.ready();
       const transactionRequest = new TransactionRequestBuilder().build();

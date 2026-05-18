@@ -40,7 +40,7 @@ export type MutableContractCompileResult = {
 export async function compileMinimalMutableContract(
   client: MidenClient,
 ): Promise<MutableContractCompileResult> {
-  const { AccountType } = await import("@miden-sdk/miden-sdk/lazy");
+  const { AccountType } = await import("@miden-sdk/miden-sdk");
 
   const component = await client.compile.component({
     code: MINIMAL_MUTABLE_CONTRACT_SOURCE,
@@ -65,7 +65,7 @@ export async function compileMinimalMutableContract(
 export async function compileMinimalRegistryComponent(
   client: MidenClient,
 ): Promise<MutableContractCompileResult> {
-  const { AccountType } = await import("@miden-sdk/miden-sdk/lazy");
+  const { AccountType } = await import("@miden-sdk/miden-sdk");
 
   const component = await client.compile.component({
     code: MINIMAL_REGISTRY_COMPONENT_SOURCE,
