@@ -92,4 +92,4 @@ Instead, future code should add `lib/registryClient.ts` with wrappers such as:
 - `updateNameTarget(client, params)`
 
 Those wrappers should build Miden transaction requests and submit them with the
-connected `WebClient`.
+connected `MidenClient`.

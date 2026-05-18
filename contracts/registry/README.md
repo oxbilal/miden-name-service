@@ -10,21 +10,19 @@ is confirmed.
 
 ## SDK APIs Confirmed Locally
 
-The installed `@demox-labs/miden-sdk` package exposes the following relevant
-APIs in `node_modules/@demox-labs/miden-sdk/dist/crates/miden_client_web.d.ts`:
+The active app path is Miden v0.14 through `@miden-sdk/*`. The old
+`@demox-labs/*` SDK notes are superseded by `docs/miden-v014-migration.md`.
 
-- `WebClient.createScriptBuilder()`
-- `AccountComponent.compile(account_code, builder, storage_slots)`
-- `AccountComponent.fromPackage(package, storage_slots)`
-- `AccountBuilder.withComponent(account_component)`
-- `AccountBuilder.build()`
-- `WebClient.newAccount(account, overwrite)`
-- `TransactionRequestBuilder.withCustomScript(script)`
-- `WebClient.executeTransaction(account_id, transaction_request)`
-- `WebClient.submitNewTransaction(account_id, transaction_request)`
+Confirmed v0.14 APIs include:
 
-These APIs are enough to outline a registry account build path, but this repo
-does not yet include an executable Miden contract build script.
+- `MidenClient.createTestnet()`
+- `client.compile.component({ code, slots?, supportAllTypes? })`
+- `client.compile.txScript({ code, libraries? })`
+- `AccountType.ImmutableContract`
+- `AccountType.MutableContract`
+
+These APIs are enough to define the next compile experiment, but this repo does
+not yet include an executable registry deploy script.
 
 ## Goal
 

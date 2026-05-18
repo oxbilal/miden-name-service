@@ -1,4 +1,4 @@
-import type { MidenTransaction } from "@demox-labs/miden-wallet-adapter";
+import type { MidenTransaction } from "@miden-sdk/miden-wallet-adapter-base";
 
 type RegistryRegisterInput = {
   name: string;

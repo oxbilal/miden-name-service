@@ -1,5 +1,9 @@
 # Registry Contract Blocker
 
+> Miden v0.14 update: use `@miden-sdk/*`, `MidenClient`, `client.compile`, and
+> `ImmutableContract`/`MutableContract` for the next registry step. See
+> `docs/miden-v014-migration.md`.
+
 The repo now has a registry account/component scaffold in:
 
 - `contracts/registry/src/registry.masm`

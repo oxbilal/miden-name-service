@@ -1,5 +1,10 @@
 # Official Miden Examples And Registry Relevance
 
+> Miden v0.14 update: this note is older v0.12 research. The active package path
+> is `@miden-sdk/*`, with `MidenClient`, `MidenProvider`, and
+> `MidenFiSignerProvider`. See `docs/miden-v014-migration.md` before using any
+> API names from this file.
+
 This note records the official Miden examples and installed SDK APIs found while
 researching custom accounts, account components, contract-like code, and storage.
 It is research only. No registry contract code has been added yet.

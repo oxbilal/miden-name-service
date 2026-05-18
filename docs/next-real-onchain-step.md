@@ -1,5 +1,9 @@
 # Next Real Onchain Step
 
+> Miden v0.14 update: this note is superseded by
+> `docs/miden-v014-migration.md` and `docs/registry-build-blocker.md`. The active
+> path is `@miden-sdk/*`, `MidenClient`, React SDK hooks, and `client.compile`.
+
 This note is based only on the installed `@demox-labs/miden-sdk@0.12.5`
 package in `node_modules`. The package contains a README and generated
 TypeScript declarations, but no bundled custom-account registry example.
@@ -310,6 +314,6 @@ from display strings.
 The registry adapter should stay in two modes:
 
 - `local`: updates local React state.
-- `miden`: validates `WebClient` and account id, then returns the clear
+- `miden`: validates `MidenClient` and account id, then returns the clear
   not-implemented error until custom account component + StorageMap write syntax
   is confirmed.

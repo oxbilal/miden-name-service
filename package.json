@@ -9,8 +9,10 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@demox-labs/miden-sdk": "^0.12.5",
-    "@demox-labs/miden-wallet-adapter": "^0.10.0",
+    "@miden-sdk/miden-sdk": "^0.14.9",
+    "@miden-sdk/miden-wallet-adapter-base": "^0.14.3",
+    "@miden-sdk/miden-wallet-adapter-react": "^0.14.3",
+    "@miden-sdk/react": "^0.14.9",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.16.0",
     "next": "^16.2.6",

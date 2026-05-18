@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import "@demox-labs/miden-wallet-adapter/styles.css";
-import { Providers } from "./providers";
 
 export const metadata: Metadata = {
   title: "Miden Name Service",
@@ -16,7 +14,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
-        <Providers>{children}</Providers>
+        {children}
       </body>
     </html>
   );

@@ -9,9 +9,9 @@ export async function consumeFirstAvailableNote(
   client: MidenClient,
   accountId: MidenAccountId,
 ): Promise<ConsumeFirstAvailableNoteResult> {
-  await client.syncState();
+  await client.sync();
 
-  const notes = await client.getConsumableNotes(accountId);
+  const notes = await client.notes.listAvailable({ account: accountId });
 
   if (notes.length === 0) {
     throw new Error(
@@ -19,14 +19,16 @@ export async function consumeFirstAvailableNote(
     );
   }
 
-  const noteId = notes[0].inputNoteRecord().id().toString();
-  const request = client.newConsumeTransactionRequest([noteId]);
-  const transactionId = await client.submitNewTransaction(accountId, request);
+  const note = notes[0];
+  const result = await client.transactions.consume({
+    account: accountId,
+    notes: [note],
+  });
 
-  await client.syncState();
+  await client.sync();
 
   return {
-    noteId,
-    transactionId: transactionId.toHex(),
+    noteId: note.id().toString(),
+    transactionId: result.txId.toString(),
   };
 }

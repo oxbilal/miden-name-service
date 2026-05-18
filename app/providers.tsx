@@ -1,34 +1,30 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import type { ReactNode } from "react";
+import { MidenProvider } from "@miden-sdk/react/lazy";
+import { MidenFiSignerProvider } from "@miden-sdk/miden-wallet-adapter-react";
 import {
   AllowedPrivateData,
-  MidenWalletAdapter,
   PrivateDataPermission,
   WalletAdapterNetwork,
-  WalletModalProvider,
-  WalletProvider,
-} from "@demox-labs/miden-wallet-adapter";
+} from "@miden-sdk/miden-wallet-adapter-base";
 
 type ProvidersProps = {
   children: ReactNode;
 };
 
 export function Providers({ children }: ProvidersProps) {
-  const wallets = useMemo(
-    () => [new MidenWalletAdapter({ appName: "Miden Name Service" })],
-    [],
-  );
-
   return (
-    <WalletProvider
-      wallets={wallets}
+    <MidenFiSignerProvider
+      appName="Miden Name Service"
       privateDataPermission={PrivateDataPermission.UponRequest}
       allowedPrivateData={AllowedPrivateData.None}
       network={WalletAdapterNetwork.Testnet}
       autoConnect
     >
-      <WalletModalProvider>{children}</WalletModalProvider>
-    </WalletProvider>
+      <MidenProvider config={{ rpcUrl: "testnet", prover: "testnet" }}>
+        {children}
+      </MidenProvider>
+    </MidenFiSignerProvider>
   );
 }

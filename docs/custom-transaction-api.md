@@ -1,5 +1,11 @@
 # Custom Transaction API
 
+> Miden v0.14 update: app code now imports `Transaction` from
+> `@miden-sdk/miden-wallet-adapter-base` and wallet hooks from
+> `@miden-sdk/miden-wallet-adapter-react`. Treat the older `@demox-labs/*`
+> references below as historical research only. See
+> `docs/miden-v014-migration.md` for the active integration path.
+
 This note documents the installed `@demox-labs/miden-wallet-adapter` custom transaction API as found in `node_modules`.
 
 ## Files Checked

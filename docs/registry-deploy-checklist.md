@@ -10,7 +10,7 @@ It does not claim the registry is complete.
 
 - `contracts/registry/src/registry.masm`
   - MASM account component scaffold.
-  - Uses the official mapping pattern:
+  - Uses the mapping pattern:
     - `native_account::set_map_item`
     - `active_account::get_map_item`
   - Exposes:
@@ -23,22 +23,22 @@ It does not claim the registry is complete.
 
 - `lib/registryContract.ts`
   - Frontend registry transaction boundary.
-  - Currently blocks with an exact error instead of sending an empty transaction.
+  - Currently blocks with an exact error instead of sending an empty
+    transaction.
+
+- `app/providers.tsx`
+  - Wraps the app with `MidenFiSignerProvider` and `MidenProvider`.
 
 - `app/page.tsx`
-  - Register no longer mock-saves.
+  - Uses `useMidenFiWallet()` and `useSigner()`.
   - Register routes through `createRegistryRegisterTransaction(...)`.
 
-- `docs/registry-contract-blocker.md`
-  - Documents the current missing APIs/config.
-
-- `docs/custom-transaction-api.md`
-  - Documents wallet adapter `CustomTransaction` and `requestTransaction` APIs.
+- `docs/miden-v014-migration.md`
+  - Current source of truth for the Miden v0.14 app/research path.
 
 ## MASM / Contract Parts Still Placeholder
 
-- `registry.masm` uses confirmed map read/write procedure names, but it has not
-  been compiled in this repo yet.
+- `registry.masm` has not been compiled in this repo yet.
 - `register(nameHash, owner)` currently writes whatever `owner Word` it receives.
   It does not yet:
   - verify caller ownership
@@ -50,46 +50,36 @@ It does not claim the registry is complete.
 
 - `resolve(nameHash)` returns one `Word` owner value only.
 - `register_name.masm` does not yet push real `NAME_HASH` or `OWNER` values.
-  Those must be passed through a confirmed transaction argument mechanism.
 - No registry account deployment script exists yet.
 - No browser test proves that the wallet extension accepts the final registry
   `CustomTransaction`.
 
 ## Build / Deploy Registry Account
 
-The installed SDK exposes the pieces needed for a likely browser build path:
+The v0.14 SDK confirms the compile surface:
 
 ```ts
-const client = await WebClient.createClient();
-const scriptBuilder = client.createScriptBuilder();
+const component = await client.compile.component({
+  code: registryMasmSource,
+  slots,
+  supportAllTypes: true,
+});
+```
 
-const component = AccountComponent.compile(
-  registryMasmSource,
-  scriptBuilder,
-  [
-    StorageSlot.emptyValue(),
-    StorageSlot.map(new StorageMap()),
-  ],
-).withSupportsAllTypes();
+The v0.14 SDK declarations also expose:
 
-const result = new AccountBuilder(seed)
-  .storageMode(AccountStorageMode.public())
-  .withComponent(component)
-  .withNoAuthComponent()
-  .build();
-
-await client.newAccount(result.account, false);
+```ts
+AccountType.ImmutableContract
+AccountType.MutableContract
 ```
 
 Before adding this to the app, confirm:
 
-- Whether the browser SDK should deploy the registry account or whether the
-  Miden CLI should deploy it.
-- The correct `AccountType` for a public immutable registry account.
-- Whether `withNoAuthComponent()` is appropriate for public callable registry
-  methods, or whether a dedicated auth/access component is needed.
-- Whether `withSupportsAllTypes()` is required for the registry component.
-- How the deployed account id is exported and persisted.
+- exact `StorageMap` slot creation in v0.14
+- whether the registry account should be immutable or mutable
+- official custom contract account creation/deploy/import flow
+- whether the frontend should compile in browser or use an external toolchain
+- how the deployed account id is exported and persisted
 
 ## Frontend Config Needed
 
@@ -100,7 +90,7 @@ NEXT_PUBLIC_MIDEN_REGISTRY_ACCOUNT_ID=<deployed-registry-account-id>
 ```
 
 `lib/registryContract.ts` already checks this variable. Today, even if it is
-set, the function still blocks because the transaction script inputs and foreign
+set, the function still blocks because transaction script inputs and foreign
 account requirements are not confirmed.
 
 ## Register Flow Once Deployed
@@ -108,38 +98,18 @@ account requirements are not confirmed.
 Once deployment and argument encoding are confirmed, `Register name` should:
 
 1. Normalize the selected `.miden` name.
-2. Hash the normalized name into a Miden `Word`:
-   - `nameHash: Word`
-3. Convert the connected wallet account id/address into an owner `Word`:
-   - `owner: Word`
+2. Hash the normalized name into a Miden `Word`.
+3. Convert the connected wallet account id/address into an owner `Word`.
 4. Compile or load `contracts/registry/src/register_name.masm`.
 5. Link the registry account/component library for `use.miden_name_service::registry`.
-6. Add the deployed registry account as a foreign account if the SDK requires it:
-   - `ForeignAccount.public(registryAccountId, storageRequirements)`
-7. Build a non-empty `TransactionRequest` with:
-   - custom script
-   - nameHash argument
-   - owner argument
-   - registry foreign account/reference
-8. Wrap it with:
-
-```ts
-Transaction.createCustomTransaction(
-  walletAccountId,
-  registryAccountId,
-  transactionRequest,
-)
-```
-
-9. Call:
-
-```ts
-await requestTransaction(transaction);
-```
-
+6. Add the deployed registry account as a foreign account if the SDK requires it.
+7. Build a non-empty `TransactionRequest` with custom script, arguments, and
+   registry account reference.
+8. Wrap it with `Transaction.createCustomTransaction(...)`.
+9. Call `requestTransaction(transaction)` from `useMidenFiWallet()`.
 10. Show the returned transaction id/status.
-11. Refresh registry state and resolve the registered name from the deployed
-    registry account storage.
+11. Refresh registry state and resolve the registered name from registry
+    account storage.
 
 ## Exact Remaining Blockers
 

@@ -1,5 +1,11 @@
 # Miden Wallet Transaction And Signing API
 
+> Miden v0.14 update: app code now uses
+> `@miden-sdk/miden-wallet-adapter-react`, `@miden-sdk/miden-wallet-adapter-base`,
+> and `@miden-sdk/react`. Treat the older `@demox-labs/*` references below as
+> historical research only. See `docs/miden-v014-migration.md` for the active
+> integration path.
+
 This note records the wallet transaction/signing APIs found in the installed
 `@demox-labs/miden-wallet-adapter@0.10.0` package. It does not define or build a
 registry contract.

@@ -1,5 +1,9 @@
 # Signing Input Format Blocker
 
+> Miden v0.14 update: wallet packages now live under `@miden-sdk/*`. This older
+> signing blocker remains a historical note until v0.14 signing formats are
+> confirmed from the current packages.
+
 The `Sign register intent` button is disabled for now because the installed
 wallet adapter does not document a safe byte format for signing arbitrary
 register-intent text.

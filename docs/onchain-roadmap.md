@@ -1,5 +1,9 @@
 # Miden Name Service Onchain Roadmap
 
+> Miden v0.14 update: replace old local `WebClient` assumptions with
+> `MidenClient`, `MidenProvider`, `MidenFiSignerProvider`, and `client.compile`.
+> See `docs/miden-v014-migration.md` for the current integration path.
+
 ## Goal
 
 Move Miden Name Service from local React mock state to a real Miden registry
@@ -100,14 +104,15 @@ Today, registration does this:
 
 The real Miden flow should become:
 
-1. User creates or loads a local Miden account with `WebClient`.
+1. User connects with `MidenFiSignerProvider`/`useSigner`, or falls back to a
+   local `MidenClient` account.
 2. App resolves the registry account id.
 3. App normalizes and validates `name`.
 4. App encodes the name into the registry key.
 5. App checks registry state to confirm the key is empty.
 6. App builds a transaction request that calls registry `register(name, owner)`.
-7. User account signs/authorizes the transaction through the Miden client.
-8. App submits the transaction with `WebClient`.
+7. User account signs/authorizes through the wallet adapter or React SDK signer.
+8. App requests/submits the transaction through v0.14 wallet/`MidenClient` APIs.
 9. App syncs or refreshes registry state.
 10. UI updates `My Names` from registry state instead of local React state.
 

@@ -70,7 +70,7 @@ export async function registerName({
 
   if (mode === "miden") {
     if (!client) {
-      throw new Error("Miden registry mode requires a connected WebClient.");
+      throw new Error("Miden registry mode requires a connected MidenClient.");
     }
 
     if (!accountId?.trim()) {
