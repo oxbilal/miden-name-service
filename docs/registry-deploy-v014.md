@@ -6,7 +6,7 @@ This document tracks the browser-only Miden SDK v0.14 path for turning the curre
 
 - The app already compiles a minimal account component with `ping`, `register`, and `resolve`.
 - The component is compiled in the browser with `client.compile.component(...)`.
-- The TypeScript storage slot setup works with `StorageMap` and `StorageSlot.map("mns.names", registryMap)`.
+- The TypeScript storage slot setup works with `StorageMap` and `StorageSlot.map("mns::names", registryMap)`.
 - Storage read/write inside MASM is still blocked, so `register` and `resolve` are placeholders.
 
 ## Confirmed Installed SDK APIs
@@ -79,7 +79,7 @@ const {
 } = await import("@miden-sdk/miden-sdk");
 
 const registryMap = new StorageMap();
-const registrySlot = StorageSlot.map("mns.names", registryMap);
+const registrySlot = StorageSlot.map("mns::names", registryMap);
 
 const registryComponent = await client.compile.component({
   code: MINIMAL_REGISTRY_COMPONENT_SOURCE,
@@ -105,7 +105,7 @@ This should create a local Miden contract account in the browser client store. I
 
 - Exact transaction flow to publish or commit the newly created registry account onchain.
 - Exact transaction request shape for invoking the registry account's `register` procedure.
-- Confirmed MASM syntax for reading from and writing to the `mns.names` `StorageMap` inside a v0.14 `pub proc` account component.
+- Confirmed MASM syntax for reading from and writing to the `mns::names` `StorageMap` inside a v0.14 `pub proc` account component.
 - Stable encoding from `name.miden` to `nameHash: Word`.
 - Stable encoding from wallet account/address to `owner: Word`.
 - Decision on who owns registry account auth:

@@ -79,7 +79,7 @@ export async function compileMinimalRegistryComponent(
     "@miden-sdk/miden-sdk"
   );
 
-  const registryMapSlotName = "mns.names";
+  const registryMapSlotName = "mns::names";
   const registryMap = new StorageMap();
   const registryMapSlot = StorageSlot.map(registryMapSlotName, registryMap);
 
@@ -117,7 +117,7 @@ export async function createLocalRegistryAccount(
   const { AccountType, AuthSecretKey, StorageMap, StorageMode, StorageSlot } =
     await import("@miden-sdk/miden-sdk");
 
-  const registryMapSlotName = "mns.names";
+  const registryMapSlotName = "mns::names";
   const registryMap = new StorageMap();
   const registryMapSlot = StorageSlot.map(registryMapSlotName, registryMap);
 

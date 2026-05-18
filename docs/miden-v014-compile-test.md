@@ -23,7 +23,7 @@ installed SDK:
 
 ```ts
 const registryMap = new StorageMap();
-const registryMapSlot = StorageSlot.map("mns.names", registryMap);
+const registryMapSlot = StorageSlot.map("mns::names", registryMap);
 
 await client.compile.component({
   code,
@@ -97,7 +97,7 @@ Required format for this smoke test:
 - `register` consumes two placeholder words, `NAME_HASH` and `OWNER`
 - `resolve` consumes one placeholder `NAME_HASH` word and returns a placeholder
   owner word
-- this registry test includes one empty `StorageMap` slot named `mns.names`
+- this registry test includes one empty `StorageMap` slot named `mns::names`
 - this registry test does not include account deploy or storage writes
 
 Legacy dotted MASM forms, such as `export.register`, fail in v0.14 with:

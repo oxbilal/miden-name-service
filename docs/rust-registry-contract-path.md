@@ -6,7 +6,7 @@ The direct MASM path is blocked because the repo has not found a confirmed
 Miden v0.14 `client.compile.component` source example that combines:
 
 - `pub proc`
-- `StorageSlot.map("mns.names", ...)`
+- `StorageSlot.map("mns::names", ...)`
 - `native_account::set_map_item`
 - `active_account::get_map_item`
 

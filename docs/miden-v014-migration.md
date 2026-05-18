@@ -128,7 +128,7 @@ from TypeScript with:
 
 ```ts
 const registryMap = new StorageMap();
-const registryMapSlot = StorageSlot.map("mns.names", registryMap);
+const registryMapSlot = StorageSlot.map("mns::names", registryMap);
 await client.compile.component({ code, slots: [registryMapSlot] });
 ```
 

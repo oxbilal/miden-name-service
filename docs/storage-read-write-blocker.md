@@ -3,7 +3,7 @@
 ## Goal
 
 Find the exact Miden v0.14 MASM syntax for reading and writing the
-`StorageSlot.map("mns.names", ...)` slot created in TypeScript, then add the
+`StorageSlot.map("mns::names", ...)` slot created in TypeScript, then add the
 storage write to `register` and the storage read to `resolve` only after that
 syntax is confirmed.
 
@@ -12,7 +12,7 @@ syntax is confirmed.
 The current registry component compile test remains unchanged:
 
 - `lib/midenCompileTest.ts` creates an empty `StorageMap`.
-- It wraps the map with `StorageSlot.map("mns.names", registryMap)`.
+- It wraps the map with `StorageSlot.map("mns::names", registryMap)`.
 - It passes that slot to `client.compile.component({ code, slots, supportAllTypes })`.
 - The MASM source keeps `pub proc ping`, `pub proc register`, and
   `pub proc resolve` compiling with placeholder stack handling only.
@@ -46,7 +46,7 @@ export class StorageSlot {
 }
 ```
 
-These APIs are enough to create the `mns.names` map slot for compilation.
+These APIs are enough to create the `mns::names` map slot for compilation.
 
 ## MASM Syntax Found
 
@@ -92,7 +92,7 @@ exact v0.14 component form.
 Local searches:
 
 ```text
-rg -n "set_map_item|get_map_item|StorageMap|StorageSlot\\.map|native_account|active_account|storage::|account::|get_item|set_item|mns.names|compile.component|compileAccountComponentCode" node_modules\@miden-sdk docs contracts lib -S --glob "!**/*.map"
+rg -n "set_map_item|get_map_item|StorageMap|StorageSlot\\.map|native_account|active_account|storage::|account::|get_item|set_item|mns::names|compile.component|compileAccountComponentCode" node_modules\@miden-sdk docs contracts lib -S --glob "!**/*.map"
 ```
 
 Official docs searched:
@@ -116,7 +116,7 @@ Still not found:
   `use.miden::active_account` and calls `exec.active_account::get_map_item`.
 - A v0.14 `client.compile.component` example that imports
   `use.miden::native_account` and calls `exec.native_account::set_map_item`.
-- Documentation for whether `StorageSlot.map("mns.names", ...)` is addressed in
+- Documentation for whether `StorageSlot.map("mns::names", ...)` is addressed in
   MASM by positional slot index, slot name metadata, or generated bindings.
 
 ## Why This Is Blocked For Our v0.14 Component
@@ -147,7 +147,7 @@ Keep `lib/midenCompileTest.ts` on the compiling v0.14 source:
 - `ping` returns `1`
 - `register` consumes placeholder `NAME_HASH` and `OWNER`
 - `resolve` consumes placeholder `NAME_HASH` and returns a placeholder owner
-- TypeScript supplies the `StorageSlot.map("mns.names", ...)` slot
+- TypeScript supplies the `StorageSlot.map("mns::names", ...)` slot
 
 Do not add MASM storage read/write until the v0.14 `pub proc` syntax and slot
 addressing rule are confirmed.
@@ -190,4 +190,4 @@ end
 The unresolved part is whether v0.14 `client.compile.component` expects map
 slots to be referenced by positional index, generated name binding, or another
 component metadata convention when the slot is created with
-`StorageSlot.map("mns.names", ...)`.
+`StorageSlot.map("mns::names", ...)`.
