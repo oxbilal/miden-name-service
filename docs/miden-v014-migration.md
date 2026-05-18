@@ -115,8 +115,8 @@ const component = await client.compile.component({
 ```
 
 That first compile test now exists in `lib/midenCompileTest.ts` and the
-`MutableContract Compile Test` panel. It compiles a minimal component only; it
-does not deploy an account or write registry storage.
+`Registry Component Compile Test` panel. It compiles a minimal registry-shaped
+component only; it does not deploy an account or write registry storage.
 
 The test uses `AccountType.RegularAccountUpdatableCode = 3` from the installed
 lazy WASM export. The wrapper docs mention `MutableContract`, but the lazy

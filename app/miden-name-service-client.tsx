@@ -25,7 +25,7 @@ import {
   type RegistryAdapterMode,
   type RegistryRecord,
 } from "@/lib/registryAdapter";
-import { compileMinimalMutableContract } from "@/lib/midenCompileTest";
+import { compileMinimalRegistryComponent } from "@/lib/midenCompileTest";
 
 const takenNames = ["miden.miden", "admin.miden", "bilal.miden"];
 const initialNames = [
@@ -317,7 +317,7 @@ export default function MidenNameService() {
     }
   }
 
-  async function handleCompileMutableContract() {
+  async function handleCompileRegistryComponent() {
     setCompileTestStatus("compiling");
     setCompileTestMessage("");
 
@@ -325,14 +325,19 @@ export default function MidenNameService() {
       const client = midenClientRef.current ?? (await createMidenClient());
       midenClientRef.current = client;
 
-      const result = await compileMinimalMutableContract(client);
+      const result = await compileMinimalRegistryComponent(client);
 
       setCompileTestStatus("success");
       setCompileTestMessage(
         [
           `${result.accountType} = ${result.accountTypeValue}`,
           `Compiled ${result.procedureCount} procedure(s).`,
-          result.pingHash ? `ping hash: ${result.pingHash}` : "ping hash: unavailable",
+          result.procedureHashes.register
+            ? `register hash: ${result.procedureHashes.register}`
+            : "register hash: unavailable",
+          result.procedureHashes.resolve
+            ? `resolve hash: ${result.procedureHashes.resolve}`
+            : "resolve hash: unavailable",
           result.procedures.length > 0
             ? `procedures: ${result.procedures.join(", ")}`
             : "procedures: none returned",
@@ -700,23 +705,23 @@ export default function MidenNameService() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-semibold text-orange-100">
-                  MutableContract Compile Test
+                  Registry Component Compile Test
                 </p>
                 <p className="mt-1 text-sm text-orange-100/50">
-                  Uses v0.14 client.compile.component only. No account deploy,
-                  transaction, or registry write.
+                  Uses v0.14 client.compile.component only. No deploy,
+                  transaction, storage slot, or registry write.
                 </p>
               </div>
 
               <button
                 type="button"
-                onClick={handleCompileMutableContract}
+                onClick={handleCompileRegistryComponent}
                 disabled={compileTestStatus === "compiling"}
                 className="rounded-2xl bg-orange-500 px-4 py-2 text-sm font-bold text-white hover:bg-orange-400 disabled:cursor-wait disabled:bg-orange-100/20 disabled:text-orange-100/40"
               >
                 {compileTestStatus === "compiling"
                   ? "Compiling"
-                  : "Test MutableContract compile"}
+                  : "Test registry compile"}
               </button>
             </div>
 
