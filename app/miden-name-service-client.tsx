@@ -331,6 +331,9 @@ export default function MidenNameService() {
       setCompileTestMessage(
         [
           `${result.accountType} = ${result.accountTypeValue}`,
+          result.storageSlots?.length
+            ? `storage slots: ${result.storageSlots.join(", ")}`
+            : "storage slots: none",
           `Compiled ${result.procedureCount} procedure(s).`,
           ...Object.entries(result.procedureHashes).map(
             ([name, hash]) => `${name} hash: ${hash || "unavailable"}`,
@@ -705,8 +708,8 @@ export default function MidenNameService() {
                   Registry Component Compile Test
                 </p>
                 <p className="mt-1 text-sm text-orange-100/50">
-                  Uses v0.14 client.compile.component only. No deploy,
-                  transaction, storage slot, or registry write.
+                  Uses v0.14 client.compile.component with an empty StorageMap
+                  slot. No deploy, transaction, or registry write.
                 </p>
               </div>
 

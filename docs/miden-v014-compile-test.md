@@ -17,9 +17,24 @@ client.compile.component({
 AccountType.RegularAccountUpdatableCode
 ```
 
-`CompileComponentOptions.slots` is optional, so the first registry test
-intentionally uses no storage slots. This keeps the test focused on whether the
-SDK can compile a minimal account component in the browser.
+`CompileComponentOptions.slots` accepts `StorageSlot[]`. The first registry
+storage test uses the confirmed TypeScript-side storage constructors from the
+installed SDK:
+
+```ts
+const registryMap = new StorageMap();
+const registryMapSlot = StorageSlot.map("mns.names", registryMap);
+
+await client.compile.component({
+  code,
+  slots: [registryMapSlot],
+  supportAllTypes: true,
+});
+```
+
+This proves that the browser compile path can accept a named empty
+`StorageMap` slot for the future registry map. It does not yet prove MASM
+storage read/write instructions.
 
 Note: the higher-level wrapper declarations mention a `MutableContract` alias,
 but the installed lazy WASM export type exposes the underlying account enum as
@@ -49,21 +64,27 @@ declares the API but does not include a complete component source fixture.
 
 The official MASM code organization docs show that library modules export
 procedures with `pub proc`. After proving `ping`, the registry compile test adds
-`register` and `resolve` procedures with harmless non-empty bodies and no
-storage:
+safe stack handling for `register` and `resolve`. Storage is supplied as an
+empty SDK `StorageMap` slot, but the procedures do not read or write it yet:
 
 ```masm
 #! Minimal registry component compile smoke test.
+#! Stack contracts:
+#! - ping: [] -> [1]
+#! - register: [NAME_HASH, OWNER] -> []
+#! - resolve: [NAME_HASH] -> [PLACEHOLDER_OWNER]
 pub proc ping
     push.1
 end
 
 pub proc register
-    push.1
+    dropw
+    dropw
 end
 
 pub proc resolve
-    push.0
+    dropw
+    push.0.0.0.0
 end
 ```
 
@@ -72,10 +93,12 @@ Required format for this smoke test:
 - component procedures use `pub proc <name>`
 - each exported procedure ends with `end`
 - transaction script `begin`/`end` format is not used for component compile
-- empty `pub proc` bodies fail with invalid syntax, so `register` and `resolve`
-  use harmless placeholder stack pushes for now
-- this registry test does not include `StorageMap` slots, account deploy, or
-  storage writes
+- empty `pub proc` bodies fail with invalid syntax
+- `register` consumes two placeholder words, `NAME_HASH` and `OWNER`
+- `resolve` consumes one placeholder `NAME_HASH` word and returns a placeholder
+  owner word
+- this registry test includes one empty `StorageMap` slot named `mns.names`
+- this registry test does not include account deploy or storage writes
 
 Legacy dotted MASM forms, such as `export.register`, fail in v0.14 with:
 
@@ -89,6 +112,26 @@ Failed to compile account component: invalid syntax
 - It does not create a registry account.
 - It does not send a wallet transaction.
 - It does not write `nameHash -> owner` storage.
+- It does not call MASM storage read/write instructions yet.
+
+## Storage Syntax Status
+
+Confirmed from installed v0.14 SDK types:
+
+- `StorageMap` has `constructor()` and `insert(key: Word, value: Word): Word`
+- `StorageSlot.map(name: string, storage_map: StorageMap): StorageSlot`
+- `client.compile.component({ code, slots, supportAllTypes })`
+
+Not confirmed in the installed package examples/tests:
+
+- a v0.14 MASM component source fixture that calls a storage read instruction
+- a v0.14 MASM component source fixture that calls a storage write instruction
+
+The existing legacy scaffold in `contracts/registry/src/registry.masm` mentions
+`native_account::set_map_item` and `active_account::get_map_item`, but that file
+uses older `export.*` procedure syntax. Since `export.*` already fails
+`client.compile.component` with `invalid syntax`, those storage calls are not
+treated as confirmed for this v0.14 browser compile path.
 
 ## If The Browser Compile Fails
 

@@ -116,11 +116,24 @@ const component = await client.compile.component({
 ```
 
 That first compile test now exists in `lib/midenCompileTest.ts` and the
-`Registry Component Compile Test` panel. It currently compiles only a minimal
-component with `pub proc ping`, empty `pub proc register`, and empty
-`pub proc resolve` while we prove the exact browser compile syntax. Empty
-procedures fail, so `register` and `resolve` now use harmless placeholder
-`push` bodies. It does not deploy an account or write registry storage.
+`Registry Component Compile Test` panel. It currently compiles a minimal
+component with `pub proc ping`, `pub proc register`, and `pub proc resolve`
+while we prove the exact browser compile syntax. Empty procedures fail, so
+`register` now consumes placeholder `NAME_HASH` and `OWNER`
+words, and `resolve` consumes placeholder `NAME_HASH` and returns a placeholder
+owner word. It does not deploy an account or write registry storage.
+
+The first storage compile step now supplies one empty named `StorageMap` slot
+from TypeScript with:
+
+```ts
+const registryMap = new StorageMap();
+const registryMapSlot = StorageSlot.map("mns.names", registryMap);
+await client.compile.component({ code, slots: [registryMapSlot] });
+```
+
+This confirms storage slot construction for `client.compile.component`, but not
+MASM read/write instructions inside `register` or `resolve`.
 
 The test uses `AccountType.RegularAccountUpdatableCode = 3` from the installed
 lazy WASM export. The wrapper docs mention `MutableContract`, but the lazy
