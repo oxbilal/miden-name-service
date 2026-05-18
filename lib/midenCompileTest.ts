@@ -8,7 +8,7 @@ pub proc ping
 end
 `;
 
-const MINIMAL_REGISTRY_COMPONENT_SOURCE = `#! Minimal registry component compile smoke test.
+export const MINIMAL_REGISTRY_COMPONENT_SOURCE = `#! Minimal registry component compile smoke test.
 #!
 #! This intentionally handles placeholder stack inputs while the first
 #! storage syntax test supplies an empty StorageMap slot from TypeScript.

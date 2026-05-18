@@ -1,5 +1,6 @@
 import type { MidenTransaction } from "@miden-sdk/miden-wallet-adapter-base";
 import { Transaction } from "@miden-sdk/miden-wallet-adapter-base";
+import { MINIMAL_REGISTRY_COMPONENT_SOURCE } from "@/lib/midenCompileTest";
 import type { MidenClient } from "@/lib/midenClient";
 
 type RegistryRegisterInput = {
@@ -23,15 +24,12 @@ export function getRegistryAccountId() {
   return REGISTRY_ACCOUNT_ID;
 }
 
-export async function createRegistryPingTransaction(input: {
+export async function createSimpleTransactionScriptFallback(input: {
   client: MidenClient;
   walletAccountId: string;
 }): Promise<MidenTransaction> {
-  const { AccountId, TransactionRequestBuilder } = await import(
-    "@miden-sdk/miden-sdk"
-  );
+  const { TransactionRequestBuilder } = await import("@miden-sdk/miden-sdk");
 
-  AccountId.fromHex(REGISTRY_ACCOUNT_ID);
   const script = await input.client.compile.txScript({
     code: "begin push.1 drop end",
   });
@@ -41,9 +39,62 @@ export async function createRegistryPingTransaction(input: {
 
   return Transaction.createCustomTransaction(
     input.walletAccountId,
+    input.walletAccountId,
+    transactionRequest,
+  );
+}
+
+export async function createRegistryPingTransaction(input: {
+  client: MidenClient;
+  walletAccountId: string;
+}): Promise<MidenTransaction> {
+  const {
+    AccountId,
+    AccountStorageRequirements,
+    ForeignAccount,
+    ForeignAccountArray,
+    Linking,
+    TransactionRequestBuilder,
+  } = await import(
+    "@miden-sdk/miden-sdk"
+  );
+
+  const registryAccountId = AccountId.fromHex(REGISTRY_ACCOUNT_ID);
+  const component = await input.client.compile.component({
+    code: MINIMAL_REGISTRY_COMPONENT_SOURCE,
+    supportAllTypes: true,
+  });
+  const pingHash = component.getProcedureHash("ping");
+  const script = await input.client.compile.txScript({
+    code: `use.mns::registry
+begin
+    call.registry::ping
+    drop
+end`,
+    libraries: [
+      {
+        namespace: "mns::registry",
+        code: MINIMAL_REGISTRY_COMPONENT_SOURCE,
+        linking: Linking.Dynamic,
+      },
+    ],
+  });
+  const foreignAccounts = new ForeignAccountArray([
+    ForeignAccount.public(registryAccountId, new AccountStorageRequirements()),
+  ]);
+  const transactionRequest = new TransactionRequestBuilder()
+    .withCustomScript(script)
+    .withForeignAccounts(foreignAccounts)
+    .build();
+
+  const transaction = Transaction.createCustomTransaction(
+    input.walletAccountId,
     REGISTRY_ACCOUNT_ID,
     transactionRequest,
   );
+  return Object.assign(transaction, {
+    registryPingProcedureHash: pingHash,
+  });
 }
 
 export async function createRegistryRegisterTransaction(

@@ -22,6 +22,7 @@ import { consumeFirstAvailableNote } from "@/lib/midenTransactions";
 import {
   createRegistryPingTransaction,
   createRegistryRegisterTransaction,
+  createSimpleTransactionScriptFallback,
   getRegistryAccountId,
 } from "@/lib/registryContract";
 import {
@@ -397,8 +398,51 @@ export default function MidenNameService() {
       setRegistryProcedureStatus("success");
       setRegistryProcedureMessage(
         transactionId
-          ? `Wallet returned transaction id ${transactionId}.`
+          ? `Registry ping wallet transaction id: ${transactionId}.`
           : "Wallet accepted the registry ping transaction request.",
+      );
+    } catch (error) {
+      setRegistryProcedureStatus("error");
+      setRegistryProcedureMessage(
+        error instanceof Error ? error.message : String(error),
+      );
+    }
+  }
+
+  async function handleTestSimpleScriptFallback() {
+    if (!walletAccountId) {
+      setRegistryProcedureStatus("error");
+      setRegistryProcedureMessage(
+        "Connect a Miden wallet before requesting the simple transaction fallback.",
+      );
+      return;
+    }
+
+    if (typeof requestTransaction !== "function") {
+      setRegistryProcedureStatus("error");
+      setRegistryProcedureMessage(
+        "wallet.requestTransaction is not available from the connected adapter.",
+      );
+      return;
+    }
+
+    setRegistryProcedureStatus("requesting");
+    setRegistryProcedureMessage("");
+
+    try {
+      const client = midenClientRef.current ?? (await createMidenClient());
+      midenClientRef.current = client;
+      const transaction = await createSimpleTransactionScriptFallback({
+        client,
+        walletAccountId,
+      });
+      const transactionId = await requestTransaction(transaction);
+
+      setRegistryProcedureStatus("success");
+      setRegistryProcedureMessage(
+        transactionId
+          ? `Simple fallback wallet transaction id: ${transactionId}.`
+          : "Wallet accepted the simple transaction fallback.",
       );
     } catch (error) {
       setRegistryProcedureStatus("error");
@@ -800,27 +844,39 @@ export default function MidenNameService() {
                   Registry Procedure Transaction Test
                 </p>
                 <p className="mt-1 text-sm text-orange-100/50">
-                  First tests the smallest custom transaction script while
-                  preserving registry account config{" "}
+                  Calls the configured registry account{" "}
                   <span className="font-mono">
                     {shortenAddress(registryAccountId)}
                   </span>
-                  . No registry procedure or storage write yet.
+                  {" "}ping procedure through a wrapped transaction script. No
+                  storage write or name registration yet.
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={handleTestRegistryPingTransaction}
-                disabled={
-                  registryProcedureStatus === "requesting" || !walletAccountId
-                }
-                className="rounded-2xl bg-orange-500 px-4 py-2 text-sm font-bold text-white hover:bg-orange-400 disabled:cursor-not-allowed disabled:bg-orange-100/20 disabled:text-orange-100/40"
-              >
-                {registryProcedureStatus === "requesting"
-                  ? "Requesting"
-                  : "Test simple tx script"}
-              </button>
+              <div className="flex flex-col gap-2 sm:items-end">
+                <button
+                  type="button"
+                  onClick={handleTestRegistryPingTransaction}
+                  disabled={
+                    registryProcedureStatus === "requesting" || !walletAccountId
+                  }
+                  className="rounded-2xl bg-orange-500 px-4 py-2 text-sm font-bold text-white hover:bg-orange-400 disabled:cursor-not-allowed disabled:bg-orange-100/20 disabled:text-orange-100/40"
+                >
+                  {registryProcedureStatus === "requesting"
+                    ? "Requesting"
+                    : "Test registry ping"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleTestSimpleScriptFallback}
+                  disabled={
+                    registryProcedureStatus === "requesting" || !walletAccountId
+                  }
+                  className="rounded-2xl border border-orange-200/10 bg-orange-100/5 px-4 py-2 text-sm font-semibold text-orange-100 hover:bg-orange-100/10 disabled:cursor-not-allowed disabled:text-orange-100/40"
+                >
+                  Test simple fallback
+                </button>
+              </div>
             </div>
 
             {registryProcedureMessage && (
