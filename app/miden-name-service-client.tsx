@@ -25,7 +25,10 @@ import {
   type RegistryAdapterMode,
   type RegistryRecord,
 } from "@/lib/registryAdapter";
-import { compileMinimalRegistryComponent } from "@/lib/midenCompileTest";
+import {
+  compileMinimalRegistryComponent,
+  createLocalRegistryAccount,
+} from "@/lib/midenCompileTest";
 
 const takenNames = ["miden.miden", "admin.miden", "bilal.miden"];
 const initialNames = [
@@ -51,6 +54,7 @@ type MidenClientStatus =
 type TransactionStatus = "idle" | "submitting" | "success" | "error";
 type CustomTransactionStatus = "idle" | "requesting" | "success" | "error";
 type CompileTestStatus = "idle" | "compiling" | "success" | "error";
+type RegistryAccountStatus = "idle" | "creating" | "success" | "error";
 
 function MidenLogo({ className = "h-8 w-8" }) {
   return (
@@ -135,6 +139,9 @@ export default function MidenNameService() {
   const [compileTestStatus, setCompileTestStatus] =
     useState<CompileTestStatus>("idle");
   const [compileTestMessage, setCompileTestMessage] = useState("");
+  const [registryAccountStatus, setRegistryAccountStatus] =
+    useState<RegistryAccountStatus>("idle");
+  const [registryAccountMessage, setRegistryAccountMessage] = useState("");
   const midenClientRef = useRef<MidenClient | null>(null);
 
   const registeredNames = useMemo(
@@ -346,6 +353,39 @@ export default function MidenNameService() {
     } catch (error) {
       setCompileTestStatus("error");
       setCompileTestMessage(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  async function handleCreateRegistryAccount() {
+    setRegistryAccountStatus("creating");
+    setRegistryAccountMessage("");
+
+    try {
+      const client = midenClientRef.current ?? (await createMidenClient());
+      midenClientRef.current = client;
+
+      const result = await createLocalRegistryAccount(client);
+
+      setRegistryAccountStatus("success");
+      setRegistryAccountMessage(
+        [
+          `registry account id: ${result.accountId}`,
+          `${result.accountType} = ${result.accountTypeValue}`,
+          `storage mode: ${result.storageMode}`,
+          result.storageSlots?.length
+            ? `storage slots: ${result.storageSlots.join(", ")}`
+            : "storage slots: none",
+          `Compiled ${result.procedureCount} procedure(s).`,
+          ...Object.entries(result.procedureHashes).map(
+            ([name, hash]) => `${name} hash: ${hash || "unavailable"}`,
+          ),
+        ].join("\n"),
+      );
+    } catch (error) {
+      setRegistryAccountStatus("error");
+      setRegistryAccountMessage(
+        error instanceof Error ? error.message : String(error),
+      );
     }
   }
 
@@ -734,6 +774,43 @@ export default function MidenNameService() {
                 }`}
               >
                 {compileTestMessage}
+              </pre>
+            )}
+          </div>
+
+          <div className="mx-auto mt-4 max-w-2xl rounded-2xl border border-orange-200/10 bg-[#1b140e]/60 p-4 text-left">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-orange-100">
+                  Create registry account
+                </p>
+                <p className="mt-1 text-sm text-orange-100/50">
+                  Creates a local mutable contract account from the compiled
+                  registry component. No storage write or Register wiring yet.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleCreateRegistryAccount}
+                disabled={registryAccountStatus === "creating"}
+                className="rounded-2xl bg-orange-500 px-4 py-2 text-sm font-bold text-white hover:bg-orange-400 disabled:cursor-wait disabled:bg-orange-100/20 disabled:text-orange-100/40"
+              >
+                {registryAccountStatus === "creating"
+                  ? "Creating"
+                  : "Create registry account"}
+              </button>
+            </div>
+
+            {registryAccountMessage && (
+              <pre
+                className={`mt-3 whitespace-pre-wrap rounded-2xl px-4 py-3 font-mono text-sm ${
+                  registryAccountStatus === "success"
+                    ? "bg-emerald-400/10 text-emerald-200"
+                    : "bg-red-500/10 text-red-200"
+                }`}
+              >
+                {registryAccountMessage}
               </pre>
             )}
           </div>

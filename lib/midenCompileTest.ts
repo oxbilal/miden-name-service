@@ -40,6 +40,11 @@ export type MutableContractCompileResult = {
   procedureHashes: Record<string, string>;
 };
 
+export type LocalRegistryAccountResult = MutableContractCompileResult & {
+  accountId: string;
+  storageMode: string;
+};
+
 export async function compileMinimalMutableContract(
   client: MidenClient,
 ): Promise<MutableContractCompileResult> {
@@ -91,6 +96,59 @@ export async function compileMinimalRegistryComponent(
   return {
     accountType: "AccountType.RegularAccountUpdatableCode",
     accountTypeValue: AccountType.RegularAccountUpdatableCode,
+    storageSlots: [registryMapSlotName],
+    procedureCount: procedures.length,
+    procedures,
+    procedureHashes: {
+      ping: component.getProcedureHash("ping"),
+      register: component.getProcedureHash("register"),
+      resolve: component.getProcedureHash("resolve"),
+    },
+  };
+}
+
+export async function createLocalRegistryAccount(
+  client: MidenClient,
+): Promise<LocalRegistryAccountResult> {
+  if (typeof window === "undefined") {
+    throw new Error("Registry account creation can only run in the browser.");
+  }
+
+  const { AccountType, AuthSecretKey, StorageMap, StorageMode, StorageSlot } =
+    await import("@miden-sdk/miden-sdk");
+
+  const registryMapSlotName = "mns.names";
+  const registryMap = new StorageMap();
+  const registryMapSlot = StorageSlot.map(registryMapSlotName, registryMap);
+
+  const component = await client.compile.component({
+    code: MINIMAL_REGISTRY_COMPONENT_SOURCE,
+    slots: [registryMapSlot],
+    supportAllTypes: true,
+  });
+
+  const seed = crypto.getRandomValues(new Uint8Array(32));
+  const auth = AuthSecretKey.rpoFalconWithRNG();
+
+  // Dev smoke test only: this creates a local contract account entry. The next
+  // registry step is confirming the account publication and invocation flow.
+  const account = await client.accounts.create({
+    type: AccountType.RegularAccountUpdatableCode,
+    seed,
+    auth,
+    components: [component],
+    storage: StorageMode.Public,
+  });
+
+  const procedures = component
+    .getProcedures()
+    .map((procedure) => String(procedure));
+
+  return {
+    accountId: account.id().toString(),
+    accountType: "AccountType.RegularAccountUpdatableCode",
+    accountTypeValue: AccountType.RegularAccountUpdatableCode,
+    storageMode: StorageMode.Public,
     storageSlots: [registryMapSlotName],
     procedureCount: procedures.length,
     procedures,
