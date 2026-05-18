@@ -6,11 +6,20 @@ type RegistryRegisterInput = {
   target: string;
 };
 
-const REGISTRY_ACCOUNT_ID = process.env.NEXT_PUBLIC_MIDEN_REGISTRY_ACCOUNT_ID;
+export const EXAMPLE_REGISTRY_ACCOUNT_ID =
+  "0x380a8d8b0b61d21013bbfa8ccc56e5";
+
+export const REGISTRY_ACCOUNT_ID =
+  process.env.NEXT_PUBLIC_MIDEN_REGISTRY_ACCOUNT_ID ??
+  EXAMPLE_REGISTRY_ACCOUNT_ID;
 
 export const registryContractBlocker =
-  "Registry transaction blocked: no deployed Miden registry account/component is configured. " +
-  "Set NEXT_PUBLIC_MIDEN_REGISTRY_ACCOUNT_ID after deploying the registry account, then add confirmed nameHash and owner Word encoding plus the registry transaction script.";
+  "Registry transaction blocked at the configured registry account boundary. " +
+  "The SDK registry account id is configured, but the confirmed transaction script for invoking register(nameHash, owner) is still missing, and MASM StorageMap write syntax is still unconfirmed.";
+
+export function getRegistryAccountId() {
+  return REGISTRY_ACCOUNT_ID;
+}
 
 export async function createRegistryRegisterTransaction(
   input: RegistryRegisterInput,
@@ -21,10 +30,14 @@ export async function createRegistryRegisterTransaction(
     );
   }
 
+  const { AccountId } = await import("@miden-sdk/miden-sdk");
+  const registryAccountId = AccountId.fromHex(REGISTRY_ACCOUNT_ID);
+
   throw new Error(
     [
-      `Registry account ${REGISTRY_ACCOUNT_ID} is configured, but the browser transaction is still blocked.`,
-      "Missing confirmed APIs: normalized name -> Word hash, wallet account id -> owner Word, registry ForeignAccount requirements, and transaction script argument wiring.",
+      `Registry account ${registryAccountId.toString()} is configured and parses with AccountId.fromHex.`,
+      "Register is not sent because the confirmed transaction script for targeting the registry register procedure is missing.",
+      "Still blocked: normalized name -> Word hash, wallet account id -> owner Word, procedure invocation script, and MASM StorageMap write syntax for mns::names.",
       `Requested registration: ${input.name} owner ${input.owner} target ${input.target}.`,
     ].join(" "),
   );

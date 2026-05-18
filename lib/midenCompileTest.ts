@@ -10,24 +10,29 @@ end
 
 const MINIMAL_REGISTRY_COMPONENT_SOURCE = `#! Minimal registry component compile smoke test.
 #!
-#! This intentionally handles placeholder stack inputs while the first
-#! storage syntax test supplies an empty StorageMap slot from TypeScript.
+#! This tests v0.14 MASM map read/write syntax against the StorageMap slot
+#! supplied from TypeScript with StorageSlot.map("mns::names", ...).
 #! Stack contracts:
 #! - ping: [] -> [1]
 #! - register: [NAME_HASH, OWNER] -> []
-#! - resolve: [NAME_HASH] -> [PLACEHOLDER_OWNER]
+#! - resolve: [NAME_HASH] -> [OWNER]
+use.miden::active_account
+use.miden::native_account
+
 pub proc ping
     push.1
 end
 
 pub proc register
+    push.0
+    exec.native_account::set_map_item
     dropw
     dropw
 end
 
 pub proc resolve
-    dropw
-    push.0.0.0.0
+    push.0
+    exec.active_account::get_map_item
 end
 `;
 

@@ -19,7 +19,10 @@ import {
   type MidenClient,
 } from "@/lib/midenClient";
 import { consumeFirstAvailableNote } from "@/lib/midenTransactions";
-import { createRegistryRegisterTransaction } from "@/lib/registryContract";
+import {
+  createRegistryRegisterTransaction,
+  getRegistryAccountId,
+} from "@/lib/registryContract";
 import {
   resolveName,
   type RegistryAdapterMode,
@@ -162,6 +165,7 @@ export default function MidenNameService() {
   const registryMode: RegistryAdapterMode =
     midenClientRef.current && midenAccountId ? "miden" : "local";
   const activeAccountId = walletAccountId ?? midenAccountId;
+  const registryAccountId = getRegistryAccountId();
   const searchedName = useMemo(() => normalizeName(searchResult), [searchResult]);
   const isSearchValid = searchResult ? isValidName(searchResult) : false;
   const isTaken = searchedName ? unavailableNames.includes(searchedName) : false;
@@ -909,8 +913,8 @@ export default function MidenNameService() {
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm text-orange-100/50">Register</p>
                     {walletAccountId && (
-                      <span className="rounded-full bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-200">
-                        Mock registration - wallet connected
+                      <span className="rounded-full bg-orange-400/10 px-3 py-1 text-xs font-semibold text-orange-100">
+                        Registry boundary configured
                       </span>
                     )}
                   </div>
@@ -934,12 +938,16 @@ export default function MidenNameService() {
 
               {walletAccountId ? (
                 <p className="mt-4 rounded-2xl bg-orange-100/5 px-4 py-3 text-sm text-orange-100/70">
-                  Register will request a Miden Wallet custom transaction from{" "}
+                  Register targets registry account{" "}
+                  <span className="font-mono">
+                    {shortenAddress(registryAccountId)}
+                  </span>{" "}
+                  from wallet{" "}
                   <span className="font-mono">
                     {shortenAddress(walletAccountId)}
                   </span>
-                  . Registry storage is blocked until the registry
-                  account/contract exists.
+                  . The request is blocked until the confirmed register
+                  procedure transaction script and storage write syntax exist.
                 </p>
               ) : (
                 <p className="mt-4 rounded-2xl bg-orange-100/5 px-4 py-3 text-sm text-orange-100/70">

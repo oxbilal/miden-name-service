@@ -157,6 +157,78 @@ addressing rule are confirmed.
 No MASM storage read/write code was added to the compiling registry component.
 No UI, register flow, deploy path, or transaction path was changed.
 
+## 2026-05-18 Register/Resolve Storage Syntax Test
+
+Request:
+
+- make `register` write `nameHash -> owner` into `mns::names`
+- make `resolve` read `owner` from `mns::names`
+- use only confirmed v0.14 APIs/syntax
+
+Current test:
+
+The registry component now tests the older documented MASM map helpers in the
+v0.14 `pub proc` component form:
+
+```masm
+use.miden::active_account
+use.miden::native_account
+
+pub proc register
+    push.0
+    exec.native_account::set_map_item
+    dropw
+    dropw
+end
+
+pub proc resolve
+    push.0
+    exec.active_account::get_map_item
+end
+```
+
+Assumption under test:
+
+- `mns::names` is the first and only component storage slot supplied by
+  TypeScript, so its map slot index is `0`.
+
+The repo has confirmed all of these:
+
+- local registry account creation works
+- `StorageSlot.map("mns::names", registryMap)` is accepted
+- the component with `pub proc ping`, `pub proc register`, and
+  `pub proc resolve` compiles
+- `native_account::set_map_item` and `active_account::get_map_item` exist in
+  older MASM examples
+
+If runtime component compilation fails in the dev panel, rollback to the prior
+placeholder component and record the exact error. The missing piece would then
+still be the exact v0.14 component syntax that proves all of these together:
+
+- `pub proc register`
+- `exec.native_account::set_map_item`
+- the `mns::names` `StorageSlot.map(...)` slot
+- correct stack shape for `[NAME_HASH, OWNER]`
+- whether the map slot is addressed by positional index, slot name binding, or
+  generated component metadata
+
+The current Register UI still stops at the registry account boundary instead of
+deploying or sending a transaction. This storage syntax test only affects the
+dev compile/account-creation panels.
+
+Local Node smoke test:
+
+```text
+MidenClient.createMock() did not reach component compilation in Node.
+The SDK failed while loading WASM:
+TypeError: fetch failed
+cause: Error: not implemented... yet...
+```
+
+This is the same browser-oriented WASM loading boundary seen earlier. It is not
+a MASM syntax failure. The actual storage syntax result should be checked from
+the in-app dev panel with `Test registry compile`.
+
 ## Exact Missing Confirmation
 
 We need one of the following before changing the MASM component:
