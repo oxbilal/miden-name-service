@@ -16,9 +16,11 @@ pub proc ping
 end
 
 pub proc register
+    push.1
 end
 
 pub proc resolve
+    push.0
 end
 `;
 
@@ -78,6 +80,8 @@ export async function compileMinimalRegistryComponent(
     procedures,
     procedureHashes: {
       ping: component.getProcedureHash("ping"),
+      register: component.getProcedureHash("register"),
+      resolve: component.getProcedureHash("resolve"),
     },
   };
 }

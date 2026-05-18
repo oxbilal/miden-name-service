@@ -49,7 +49,8 @@ declares the API but does not include a complete component source fixture.
 
 The official MASM code organization docs show that library modules export
 procedures with `pub proc`. After proving `ping`, the registry compile test adds
-empty `register` and `resolve` procedures without storage:
+`register` and `resolve` procedures with harmless non-empty bodies and no
+storage:
 
 ```masm
 #! Minimal registry component compile smoke test.
@@ -58,9 +59,11 @@ pub proc ping
 end
 
 pub proc register
+    push.1
 end
 
 pub proc resolve
+    push.0
 end
 ```
 
@@ -69,7 +72,8 @@ Required format for this smoke test:
 - component procedures use `pub proc <name>`
 - each exported procedure ends with `end`
 - transaction script `begin`/`end` format is not used for component compile
-- `register` and `resolve` are empty for now
+- empty `pub proc` bodies fail with invalid syntax, so `register` and `resolve`
+  use harmless placeholder stack pushes for now
 - this registry test does not include `StorageMap` slots, account deploy, or
   storage writes
 
