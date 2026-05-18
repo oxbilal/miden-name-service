@@ -8,26 +8,32 @@ pub proc ping
 end
 `;
 
-export const MINIMAL_REGISTRY_COMPONENT_SOURCE = `#! Minimal registry component compile smoke test.
+export const MINIMAL_REGISTRY_COMPONENT_SOURCE = `use miden::protocol::active_account
+use miden::protocol::native_account
+use miden::core::word
+
+const NAMES_SLOT = word("mns::names")
+
+#! Minimal registry component compile smoke test.
 #!
-#! This intentionally handles placeholder stack inputs while the first
-#! storage syntax test supplies an empty StorageMap slot from TypeScript.
+#! This component uses the TypeScript-supplied StorageMap slot named mns::names.
 #! Stack contracts:
 #! - ping: [] -> [1]
 #! - register: [NAME_HASH, OWNER] -> []
-#! - resolve: [NAME_HASH] -> [PLACEHOLDER_OWNER]
+#! - resolve: [NAME_HASH] -> [OWNER]
 pub proc ping
     push.1
 end
 
 pub proc register
-    dropw
+    push.NAMES_SLOT[0..2]
+    exec.native_account::set_map_item
     dropw
 end
 
 pub proc resolve
-    dropw
-    push.0.0.0.0
+    push.NAMES_SLOT[0..2]
+    exec.active_account::get_map_item
 end
 `;
 
