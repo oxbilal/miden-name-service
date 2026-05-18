@@ -8,6 +8,10 @@ experiments to the official Rust smart contract path used by Miden v0.14 docs.
 This is a source skeleton only. It is not wired to the Next.js app and it is not
 compiled by `npm run build`.
 
+Local build attempt status is tracked in:
+
+- `docs/registry-rust-build-blocker.md`
+
 The official v0.14 path is:
 
 ```text
@@ -47,6 +51,10 @@ Expected artifact shape from the docs:
 ```text
 target/miden/release/name-registry-account.masp
 ```
+
+Do not add a hand-written `Cargo.toml` here until the official generated
+template is available. The template defines the exact dependency versions,
+allocator setup, panic strategy, crate type, and Miden metadata.
 
 ## Storage
 
