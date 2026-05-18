@@ -332,12 +332,9 @@ export default function MidenNameService() {
         [
           `${result.accountType} = ${result.accountTypeValue}`,
           `Compiled ${result.procedureCount} procedure(s).`,
-          result.procedureHashes.register
-            ? `register hash: ${result.procedureHashes.register}`
-            : "register hash: unavailable",
-          result.procedureHashes.resolve
-            ? `resolve hash: ${result.procedureHashes.resolve}`
-            : "resolve hash: unavailable",
+          result.procedureHashes.ping
+            ? `ping hash: ${result.procedureHashes.ping}`
+            : "ping hash: unavailable",
           result.procedures.length > 0
             ? `procedures: ${result.procedures.join(", ")}`
             : "procedures: none returned",
