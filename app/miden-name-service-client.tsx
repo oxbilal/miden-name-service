@@ -21,6 +21,7 @@ import {
 import { consumeFirstAvailableNote } from "@/lib/midenTransactions";
 import {
   createRegistryPingTransaction,
+  createRegistryRegisterPlaceholderTransaction,
   createRegistryRegisterTransaction,
   createSimpleTransactionScriptFallback,
   getRegistryAccountId,
@@ -452,6 +453,49 @@ export default function MidenNameService() {
     }
   }
 
+  async function handleTestRegisterPlaceholderTransaction() {
+    if (!walletAccountId) {
+      setRegistryProcedureStatus("error");
+      setRegistryProcedureMessage(
+        "Connect a Miden wallet before requesting a register placeholder transaction.",
+      );
+      return;
+    }
+
+    if (typeof requestTransaction !== "function") {
+      setRegistryProcedureStatus("error");
+      setRegistryProcedureMessage(
+        "wallet.requestTransaction is not available from the connected adapter.",
+      );
+      return;
+    }
+
+    setRegistryProcedureStatus("requesting");
+    setRegistryProcedureMessage("");
+
+    try {
+      const client = midenClientRef.current ?? (await createMidenClient());
+      midenClientRef.current = client;
+      const transaction = await createRegistryRegisterPlaceholderTransaction({
+        client,
+        walletAccountId,
+      });
+      const transactionId = await requestTransaction(transaction);
+
+      setRegistryProcedureStatus("success");
+      setRegistryProcedureMessage(
+        transactionId
+          ? `Register placeholder wallet transaction id: ${transactionId}.`
+          : "Wallet accepted the register placeholder transaction request.",
+      );
+    } catch (error) {
+      setRegistryProcedureStatus("error");
+      setRegistryProcedureMessage(
+        error instanceof Error ? error.message : String(error),
+      );
+    }
+  }
+
   async function handleCreateRegistryAccount() {
     setRegistryAccountStatus("creating");
     setRegistryAccountMessage("");
@@ -848,8 +892,8 @@ export default function MidenNameService() {
                   <span className="font-mono">
                     {shortenAddress(registryAccountId)}
                   </span>
-                  {" "}ping procedure through a wrapped transaction script. No
-                  storage write or name registration yet.
+                  {" "}ping or placeholder register procedure through a wrapped
+                  transaction script. No storage write or name registration yet.
                 </p>
               </div>
 
@@ -875,6 +919,16 @@ export default function MidenNameService() {
                   className="rounded-2xl border border-orange-200/10 bg-orange-100/5 px-4 py-2 text-sm font-semibold text-orange-100 hover:bg-orange-100/10 disabled:cursor-not-allowed disabled:text-orange-100/40"
                 >
                   Test simple fallback
+                </button>
+                <button
+                  type="button"
+                  onClick={handleTestRegisterPlaceholderTransaction}
+                  disabled={
+                    registryProcedureStatus === "requesting" || !walletAccountId
+                  }
+                  className="rounded-2xl border border-orange-200/10 bg-orange-100/5 px-4 py-2 text-sm font-semibold text-orange-100 hover:bg-orange-100/10 disabled:cursor-not-allowed disabled:text-orange-100/40"
+                >
+                  Test register placeholder
                 </button>
               </div>
             </div>

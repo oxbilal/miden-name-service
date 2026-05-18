@@ -97,6 +97,58 @@ end`,
   });
 }
 
+export async function createRegistryRegisterPlaceholderTransaction(input: {
+  client: MidenClient;
+  walletAccountId: string;
+}): Promise<MidenTransaction> {
+  const {
+    AccountId,
+    AccountStorageRequirements,
+    ForeignAccount,
+    ForeignAccountArray,
+    Linking,
+    TransactionRequestBuilder,
+  } = await import("@miden-sdk/miden-sdk");
+
+  const registryAccountId = AccountId.fromHex(REGISTRY_ACCOUNT_ID);
+  const component = await input.client.compile.component({
+    code: MINIMAL_REGISTRY_COMPONENT_SOURCE,
+    supportAllTypes: true,
+  });
+  const registerHash = component.getProcedureHash("register");
+  const script = await input.client.compile.txScript({
+    code: `use mns::registry
+begin
+    push.1.2.3.4
+    push.5.6.7.8
+    call.registry::register
+end`,
+    libraries: [
+      {
+        namespace: "mns::registry",
+        code: MINIMAL_REGISTRY_COMPONENT_SOURCE,
+        linking: Linking.Dynamic,
+      },
+    ],
+  });
+  const foreignAccounts = new ForeignAccountArray([
+    ForeignAccount.public(registryAccountId, new AccountStorageRequirements()),
+  ]);
+  const transactionRequest = new TransactionRequestBuilder()
+    .withCustomScript(script)
+    .withForeignAccounts(foreignAccounts)
+    .build();
+
+  const transaction = Transaction.createCustomTransaction(
+    input.walletAccountId,
+    REGISTRY_ACCOUNT_ID,
+    transactionRequest,
+  );
+  return Object.assign(transaction, {
+    registryRegisterProcedureHash: registerHash,
+  });
+}
+
 export async function createRegistryRegisterTransaction(
   input: RegistryRegisterInput,
 ): Promise<MidenTransaction> {
