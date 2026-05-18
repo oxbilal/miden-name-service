@@ -800,11 +800,12 @@ export default function MidenNameService() {
                   Registry Procedure Transaction Test
                 </p>
                 <p className="mt-1 text-sm text-orange-100/50">
-                  Builds a custom transaction targeting registry account{" "}
+                  First tests the smallest custom transaction script while
+                  preserving registry account config{" "}
                   <span className="font-mono">
                     {shortenAddress(registryAccountId)}
-                  </span>{" "}
-                  and attempts to call placeholder ping. No storage write.
+                  </span>
+                  . No registry procedure or storage write yet.
                 </p>
               </div>
 
@@ -818,7 +819,7 @@ export default function MidenNameService() {
               >
                 {registryProcedureStatus === "requesting"
                   ? "Requesting"
-                  : "Test registry ping"}
+                  : "Test simple tx script"}
               </button>
             </div>
 

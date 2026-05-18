@@ -27,29 +27,17 @@ export async function createRegistryPingTransaction(input: {
   client: MidenClient;
   walletAccountId: string;
 }): Promise<MidenTransaction> {
-  const {
-    AccountId,
-    AccountStorageRequirements,
-    ForeignAccount,
-    ForeignAccountArray,
-    TransactionRequestBuilder,
-  } = await import("@miden-sdk/miden-sdk");
+  const { AccountId, TransactionRequestBuilder } = await import(
+    "@miden-sdk/miden-sdk"
+  );
 
-  const registryAccountId = AccountId.fromHex(REGISTRY_ACCOUNT_ID);
+  AccountId.fromHex(REGISTRY_ACCOUNT_ID);
   const script = await input.client.compile.txScript({
-    code: `use.miden_name_service::registry
-
-begin
-    call.registry::ping
-end
-`,
+    code: `push.1
+drop`,
   });
-  const foreignAccounts = new ForeignAccountArray([
-    ForeignAccount.public(registryAccountId, new AccountStorageRequirements()),
-  ]);
   const transactionRequest = new TransactionRequestBuilder()
     .withCustomScript(script)
-    .withForeignAccounts(foreignAccounts)
     .build();
 
   return Transaction.createCustomTransaction(

@@ -230,6 +230,32 @@ transaction targeting the configured registry account and attempts to call the
 placeholder `ping` procedure. It does not write storage and does not change the
 Register flow.
 
+## Transaction Script Syntax Rollback
+
+The first registry procedure transaction script used:
+
+```masm
+use.miden_name_service::registry
+
+begin
+    call.registry::ping
+end
+```
+
+The wallet/dev-panel error reported that the transaction script parser expected
+`::`, an opcode/control opcode, or an identifier, but found a label. No confirmed
+v0.14 transaction script example in the installed SDK used this `begin` wrapper.
+
+The panel now tests the smallest opcode-only custom transaction script first:
+
+```masm
+push.1
+drop
+```
+
+Registry procedure invocation remains disabled until exact v0.14 transaction
+script call syntax for a foreign registry account component is confirmed.
+
 Local Node smoke test:
 
 ```text
