@@ -66,7 +66,7 @@ export async function createRegistryPingTransaction(input: {
   });
   const pingHash = component.getProcedureHash("ping");
   const script = await input.client.compile.txScript({
-    code: `use.mns::registry
+    code: `use mns::registry
 begin
     call.registry::ping
     drop
