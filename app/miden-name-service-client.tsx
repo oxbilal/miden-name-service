@@ -11,7 +11,7 @@ import {
 import { motion } from "framer-motion";
 import { Transaction } from "@miden-sdk/miden-wallet-adapter-base";
 import { useMidenFiWallet } from "@miden-sdk/miden-wallet-adapter-react";
-import { useSigner } from "@miden-sdk/react/lazy";
+import { useSigner } from "@miden-sdk/react";
 import {
   createMidenClient,
   createOrLoadAccount,

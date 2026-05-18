@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { MidenProvider } from "@miden-sdk/react/lazy";
+import { MidenProvider } from "@miden-sdk/react";
 import { MidenFiSignerProvider } from "@miden-sdk/miden-wallet-adapter-react";
 import {
   AllowedPrivateData,

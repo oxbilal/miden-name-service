@@ -28,7 +28,7 @@ the v0.14 WASM package should not be imported during Next.js server prerender.
 The provider tree is:
 
 ```tsx
-import { MidenProvider } from "@miden-sdk/react/lazy";
+import { MidenProvider } from "@miden-sdk/react";
 import { MidenFiSignerProvider } from "@miden-sdk/miden-wallet-adapter-react";
 
 <MidenFiSignerProvider appName="Miden Name Service" autoConnect>
@@ -43,7 +43,7 @@ available through `useSigner()`.
 
 ## Confirmed React SDK hooks
 
-Found in `node_modules/@miden-sdk/react/dist/lazy.d.ts`:
+Found in `node_modules/@miden-sdk/react/dist/index.d.ts`:
 
 - `MidenProvider`
 - `useMiden`
