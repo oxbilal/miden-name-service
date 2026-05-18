@@ -48,14 +48,19 @@ packages for a complete `client.compile.component` source example. The package
 declares the API but does not include a complete component source fixture.
 
 The official MASM code organization docs show that library modules export
-procedures with `pub proc`. The compile test therefore starts with the smallest
-single public procedure and removes `register`/`resolve` until `ping` is proven
-in the browser:
+procedures with `pub proc`. After proving `ping`, the registry compile test adds
+empty `register` and `resolve` procedures without storage:
 
 ```masm
 #! Minimal registry component compile smoke test.
 pub proc ping
     push.1
+end
+
+pub proc register
+end
+
+pub proc resolve
 end
 ```
 
@@ -64,9 +69,9 @@ Required format for this smoke test:
 - component procedures use `pub proc <name>`
 - each exported procedure ends with `end`
 - transaction script `begin`/`end` format is not used for component compile
-- `register` and `resolve` are intentionally removed until `ping` compiles
-- this first registry test does not include `StorageMap` slots, account deploy,
-  or storage writes
+- `register` and `resolve` are empty for now
+- this registry test does not include `StorageMap` slots, account deploy, or
+  storage writes
 
 Legacy dotted MASM forms, such as `export.register`, fail in v0.14 with:
 

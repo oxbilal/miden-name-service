@@ -117,9 +117,9 @@ const component = await client.compile.component({
 
 That first compile test now exists in `lib/midenCompileTest.ts` and the
 `Registry Component Compile Test` panel. It currently compiles only a minimal
-`pub proc ping` component while we prove the exact browser compile syntax. It
-does not deploy an account, expose `register`/`resolve`, or write registry
-storage.
+component with `pub proc ping`, empty `pub proc register`, and empty
+`pub proc resolve` while we prove the exact browser compile syntax. It does not
+deploy an account or write registry storage.
 
 The test uses `AccountType.RegularAccountUpdatableCode = 3` from the installed
 lazy WASM export. The wrapper docs mention `MutableContract`, but the lazy

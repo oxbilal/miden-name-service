@@ -10,10 +10,15 @@ end
 
 const MINIMAL_REGISTRY_COMPONENT_SOURCE = `#! Minimal registry component compile smoke test.
 #!
-#! This intentionally exposes only ping until the single-procedure component
-#! compiles in the browser with client.compile.component.
+#! This intentionally adds registry procedures without storage first.
 pub proc ping
     push.1
+end
+
+pub proc register
+end
+
+pub proc resolve
 end
 `;
 
@@ -46,6 +51,8 @@ export async function compileMinimalMutableContract(
     procedures,
     procedureHashes: {
       ping: component.getProcedureHash("ping"),
+      register: component.getProcedureHash("register"),
+      resolve: component.getProcedureHash("resolve"),
     },
   };
 }
