@@ -20,6 +20,7 @@ import {
 } from "@/lib/midenClient";
 import { consumeFirstAvailableNote } from "@/lib/midenTransactions";
 import {
+  createRegistryPingTransaction,
   createRegistryRegisterTransaction,
   getRegistryAccountId,
 } from "@/lib/registryContract";
@@ -58,6 +59,7 @@ type TransactionStatus = "idle" | "submitting" | "success" | "error";
 type CustomTransactionStatus = "idle" | "requesting" | "success" | "error";
 type CompileTestStatus = "idle" | "compiling" | "success" | "error";
 type RegistryAccountStatus = "idle" | "creating" | "success" | "error";
+type RegistryProcedureStatus = "idle" | "requesting" | "success" | "error";
 
 function MidenLogo({ className = "h-8 w-8" }) {
   return (
@@ -145,6 +147,9 @@ export default function MidenNameService() {
   const [registryAccountStatus, setRegistryAccountStatus] =
     useState<RegistryAccountStatus>("idle");
   const [registryAccountMessage, setRegistryAccountMessage] = useState("");
+  const [registryProcedureStatus, setRegistryProcedureStatus] =
+    useState<RegistryProcedureStatus>("idle");
+  const [registryProcedureMessage, setRegistryProcedureMessage] = useState("");
   const midenClientRef = useRef<MidenClient | null>(null);
 
   const registeredNames = useMemo(
@@ -357,6 +362,49 @@ export default function MidenNameService() {
     } catch (error) {
       setCompileTestStatus("error");
       setCompileTestMessage(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  async function handleTestRegistryPingTransaction() {
+    if (!walletAccountId) {
+      setRegistryProcedureStatus("error");
+      setRegistryProcedureMessage(
+        "Connect a Miden wallet before requesting a registry procedure transaction.",
+      );
+      return;
+    }
+
+    if (typeof requestTransaction !== "function") {
+      setRegistryProcedureStatus("error");
+      setRegistryProcedureMessage(
+        "wallet.requestTransaction is not available from the connected adapter.",
+      );
+      return;
+    }
+
+    setRegistryProcedureStatus("requesting");
+    setRegistryProcedureMessage("");
+
+    try {
+      const client = midenClientRef.current ?? (await createMidenClient());
+      midenClientRef.current = client;
+      const transaction = await createRegistryPingTransaction({
+        client,
+        walletAccountId,
+      });
+      const transactionId = await requestTransaction(transaction);
+
+      setRegistryProcedureStatus("success");
+      setRegistryProcedureMessage(
+        transactionId
+          ? `Wallet returned transaction id ${transactionId}.`
+          : "Wallet accepted the registry ping transaction request.",
+      );
+    } catch (error) {
+      setRegistryProcedureStatus("error");
+      setRegistryProcedureMessage(
+        error instanceof Error ? error.message : String(error),
+      );
     }
   }
 
@@ -741,6 +789,48 @@ export default function MidenNameService() {
                 }`}
               >
                 {customTransactionMessage}
+              </p>
+            )}
+          </div>
+
+          <div className="mx-auto mt-4 max-w-2xl rounded-2xl border border-orange-200/10 bg-[#1b140e]/60 p-4 text-left">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-orange-100">
+                  Registry Procedure Transaction Test
+                </p>
+                <p className="mt-1 text-sm text-orange-100/50">
+                  Builds a custom transaction targeting registry account{" "}
+                  <span className="font-mono">
+                    {shortenAddress(registryAccountId)}
+                  </span>{" "}
+                  and attempts to call placeholder ping. No storage write.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleTestRegistryPingTransaction}
+                disabled={
+                  registryProcedureStatus === "requesting" || !walletAccountId
+                }
+                className="rounded-2xl bg-orange-500 px-4 py-2 text-sm font-bold text-white hover:bg-orange-400 disabled:cursor-not-allowed disabled:bg-orange-100/20 disabled:text-orange-100/40"
+              >
+                {registryProcedureStatus === "requesting"
+                  ? "Requesting"
+                  : "Test registry ping"}
+              </button>
+            </div>
+
+            {registryProcedureMessage && (
+              <p
+                className={`mt-3 rounded-2xl px-4 py-3 text-sm ${
+                  registryProcedureStatus === "success"
+                    ? "bg-emerald-400/10 text-emerald-200"
+                    : "bg-red-500/10 text-red-200"
+                }`}
+              >
+                {registryProcedureMessage}
               </p>
             )}
           </div>

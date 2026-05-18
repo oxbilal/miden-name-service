@@ -216,6 +216,20 @@ The current Register UI still stops at the registry account boundary instead of
 deploying or sending a transaction. This storage syntax test only affects the
 dev compile/account-creation panels.
 
+## Rollback
+
+The MASM `set_map_item` / `get_map_item` experiment was rolled back from
+`lib/midenCompileTest.ts` to the last compiling placeholder component:
+
+- `register`: consumes `[NAME_HASH, OWNER]` with `dropw dropw`
+- `resolve`: consumes `[NAME_HASH]` and returns `push.0.0.0.0`
+
+The app now tests procedure invocation separately through the visible
+`Registry Procedure Transaction Test` panel. That panel builds a wallet custom
+transaction targeting the configured registry account and attempts to call the
+placeholder `ping` procedure. It does not write storage and does not change the
+Register flow.
+
 Local Node smoke test:
 
 ```text

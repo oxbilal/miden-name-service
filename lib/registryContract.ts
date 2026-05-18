@@ -1,4 +1,6 @@
 import type { MidenTransaction } from "@miden-sdk/miden-wallet-adapter-base";
+import { Transaction } from "@miden-sdk/miden-wallet-adapter-base";
+import type { MidenClient } from "@/lib/midenClient";
 
 type RegistryRegisterInput = {
   name: string;
@@ -19,6 +21,42 @@ export const registryContractBlocker =
 
 export function getRegistryAccountId() {
   return REGISTRY_ACCOUNT_ID;
+}
+
+export async function createRegistryPingTransaction(input: {
+  client: MidenClient;
+  walletAccountId: string;
+}): Promise<MidenTransaction> {
+  const {
+    AccountId,
+    AccountStorageRequirements,
+    ForeignAccount,
+    ForeignAccountArray,
+    TransactionRequestBuilder,
+  } = await import("@miden-sdk/miden-sdk");
+
+  const registryAccountId = AccountId.fromHex(REGISTRY_ACCOUNT_ID);
+  const script = await input.client.compile.txScript({
+    code: `use.miden_name_service::registry
+
+begin
+    call.registry::ping
+end
+`,
+  });
+  const foreignAccounts = new ForeignAccountArray([
+    ForeignAccount.public(registryAccountId, new AccountStorageRequirements()),
+  ]);
+  const transactionRequest = new TransactionRequestBuilder()
+    .withCustomScript(script)
+    .withForeignAccounts(foreignAccounts)
+    .build();
+
+  return Transaction.createCustomTransaction(
+    input.walletAccountId,
+    REGISTRY_ACCOUNT_ID,
+    transactionRequest,
+  );
 }
 
 export async function createRegistryRegisterTransaction(
