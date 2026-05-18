@@ -114,6 +114,14 @@ const component = await client.compile.component({
 });
 ```
 
+That first compile test now exists in `lib/midenCompileTest.ts` and the
+`MutableContract Compile Test` panel. It compiles a minimal component only; it
+does not deploy an account or write registry storage.
+
+The test uses `AccountType.RegularAccountUpdatableCode = 3` from the installed
+lazy WASM export. The wrapper docs mention `MutableContract`, but the lazy
+runtime type does not expose that alias directly.
+
 Do not wire a registry write until we have confirmed:
 
 - valid MASM component syntax for `register(nameHash, owner)` and `resolve(nameHash)`

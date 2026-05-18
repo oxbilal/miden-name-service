@@ -25,6 +25,7 @@ import {
   type RegistryAdapterMode,
   type RegistryRecord,
 } from "@/lib/registryAdapter";
+import { compileMinimalMutableContract } from "@/lib/midenCompileTest";
 
 const takenNames = ["miden.miden", "admin.miden", "bilal.miden"];
 const initialNames = [
@@ -49,6 +50,7 @@ type MidenClientStatus =
   | "error";
 type TransactionStatus = "idle" | "submitting" | "success" | "error";
 type CustomTransactionStatus = "idle" | "requesting" | "success" | "error";
+type CompileTestStatus = "idle" | "compiling" | "success" | "error";
 
 function MidenLogo({ className = "h-8 w-8" }) {
   return (
@@ -130,6 +132,9 @@ export default function MidenNameService() {
   const [customTransactionStatus, setCustomTransactionStatus] =
     useState<CustomTransactionStatus>("idle");
   const [customTransactionMessage, setCustomTransactionMessage] = useState("");
+  const [compileTestStatus, setCompileTestStatus] =
+    useState<CompileTestStatus>("idle");
+  const [compileTestMessage, setCompileTestMessage] = useState("");
   const midenClientRef = useRef<MidenClient | null>(null);
 
   const registeredNames = useMemo(
@@ -309,6 +314,33 @@ export default function MidenNameService() {
       setCustomTransactionMessage(
         error instanceof Error ? error.message : String(error),
       );
+    }
+  }
+
+  async function handleCompileMutableContract() {
+    setCompileTestStatus("compiling");
+    setCompileTestMessage("");
+
+    try {
+      const client = midenClientRef.current ?? (await createMidenClient());
+      midenClientRef.current = client;
+
+      const result = await compileMinimalMutableContract(client);
+
+      setCompileTestStatus("success");
+      setCompileTestMessage(
+        [
+          `${result.accountType} = ${result.accountTypeValue}`,
+          `Compiled ${result.procedureCount} procedure(s).`,
+          result.pingHash ? `ping hash: ${result.pingHash}` : "ping hash: unavailable",
+          result.procedures.length > 0
+            ? `procedures: ${result.procedures.join(", ")}`
+            : "procedures: none returned",
+        ].join("\n"),
+      );
+    } catch (error) {
+      setCompileTestStatus("error");
+      setCompileTestMessage(error instanceof Error ? error.message : String(error));
     }
   }
 
@@ -661,6 +693,43 @@ export default function MidenNameService() {
               >
                 {customTransactionMessage}
               </p>
+            )}
+          </div>
+
+          <div className="mx-auto mt-4 max-w-2xl rounded-2xl border border-orange-200/10 bg-[#1b140e]/60 p-4 text-left">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-orange-100">
+                  MutableContract Compile Test
+                </p>
+                <p className="mt-1 text-sm text-orange-100/50">
+                  Uses v0.14 client.compile.component only. No account deploy,
+                  transaction, or registry write.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleCompileMutableContract}
+                disabled={compileTestStatus === "compiling"}
+                className="rounded-2xl bg-orange-500 px-4 py-2 text-sm font-bold text-white hover:bg-orange-400 disabled:cursor-wait disabled:bg-orange-100/20 disabled:text-orange-100/40"
+              >
+                {compileTestStatus === "compiling"
+                  ? "Compiling"
+                  : "Test MutableContract compile"}
+              </button>
+            </div>
+
+            {compileTestMessage && (
+              <pre
+                className={`mt-3 whitespace-pre-wrap rounded-2xl px-4 py-3 font-mono text-sm ${
+                  compileTestStatus === "success"
+                    ? "bg-emerald-400/10 text-emerald-200"
+                    : "bg-red-500/10 text-red-200"
+                }`}
+              >
+                {compileTestMessage}
+              </pre>
             )}
           </div>
 
