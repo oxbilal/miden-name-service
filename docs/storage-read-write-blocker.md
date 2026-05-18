@@ -246,12 +246,15 @@ The wallet/dev-panel error reported that the transaction script parser expected
 `::`, an opcode/control opcode, or an identifier, but found a label. No confirmed
 v0.14 transaction script example in the installed SDK used this `begin` wrapper.
 
-The panel now tests the smallest opcode-only custom transaction script first:
+The panel now tests the smallest confirmed custom transaction script format
+first:
 
 ```masm
-push.1
-drop
+begin push.1 drop end
 ```
+
+Source: the official v0.14 delegated proving tutorial compiles this exact string
+with `compile_tx_script`.
 
 Registry procedure invocation remains disabled until exact v0.14 transaction
 script call syntax for a foreign registry account component is confirmed.

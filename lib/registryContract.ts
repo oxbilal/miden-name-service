@@ -33,8 +33,7 @@ export async function createRegistryPingTransaction(input: {
 
   AccountId.fromHex(REGISTRY_ACCOUNT_ID);
   const script = await input.client.compile.txScript({
-    code: `push.1
-drop`,
+    code: "begin push.1 drop end",
   });
   const transactionRequest = new TransactionRequestBuilder()
     .withCustomScript(script)
