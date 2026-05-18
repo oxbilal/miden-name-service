@@ -9,6 +9,8 @@ type RegistryRegisterInput = {
   target: string;
 };
 
+type WordLiteral = [number, number, number, number];
+
 export const EXAMPLE_REGISTRY_ACCOUNT_ID =
   "0x380a8d8b0b61d21013bbfa8ccc56e5";
 
@@ -22,6 +24,22 @@ export const registryContractBlocker =
 
 export function getRegistryAccountId() {
   return REGISTRY_ACCOUNT_ID;
+}
+
+export function createTemporaryWordFromText(value: string): WordLiteral {
+  const parts: WordLiteral = [0, 0, 0, 0];
+
+  for (let index = 0; index < value.length; index += 1) {
+    const part = index % parts.length;
+    parts[part] =
+      (Math.imul(parts[part], 16777619) ^ value.charCodeAt(index)) >>> 0;
+  }
+
+  return parts;
+}
+
+function formatWordPush(word: WordLiteral) {
+  return `push.${word.join(".")}`;
 }
 
 export async function createSimpleTransactionScriptFallback(input: {
@@ -100,6 +118,8 @@ end`,
 export async function createRegistryRegisterPlaceholderTransaction(input: {
   client: MidenClient;
   walletAccountId: string;
+  nameHashWord?: WordLiteral;
+  ownerWord?: WordLiteral;
 }): Promise<MidenTransaction> {
   const {
     AccountId,
@@ -116,11 +136,15 @@ export async function createRegistryRegisterPlaceholderTransaction(input: {
     supportAllTypes: true,
   });
   const registerHash = component.getProcedureHash("register");
+  const nameHashWord =
+    input.nameHashWord ?? createTemporaryWordFromText("placeholder.miden");
+  const ownerWord =
+    input.ownerWord ?? createTemporaryWordFromText(input.walletAccountId);
   const script = await input.client.compile.txScript({
     code: `use mns::registry
 begin
-    push.1.2.3.4
-    push.5.6.7.8
+    ${formatWordPush(nameHashWord)}
+    ${formatWordPush(ownerWord)}
     call.registry::register
 end`,
     libraries: [
