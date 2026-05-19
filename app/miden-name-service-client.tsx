@@ -625,8 +625,8 @@ export default function MidenNameService() {
           ownerWord,
         });
         verificationMessage = verification.matches
-          ? ` Resolve registry: ${verification.registryAccountId}. Verified owner.`
-          : ` Resolve registry: ${verification.registryAccountId}. Resolve returned owner word ${verification.ownerWord.join(".")}, which does not match the connected wallet.`;
+          ? ` Resolve registry: ${verification.registryAccountId}. Resolve execute account: ${verification.executeAccountId}. Verified owner.`
+          : ` Resolve registry: ${verification.registryAccountId}. Resolve execute account: ${verification.executeAccountId}. Resolve returned owner word ${verification.ownerWord.join(".")}, which does not match the connected wallet.`;
       } catch (verifyError) {
         verificationMessage = ` Resolve registry: ${usedRegistryAccountId}. Resolve verification blocked: ${
           verifyError instanceof Error ? verifyError.message : String(verifyError)

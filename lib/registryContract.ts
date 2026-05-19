@@ -237,21 +237,15 @@ export async function verifyRegistryOwner(input: {
   walletAccountId: string;
   nameHashWord: WordLiteral;
   ownerWord: WordLiteral;
-}): Promise<{ ownerWord: WordLiteral; matches: boolean; registryAccountId: string }> {
-  const {
-    AccountId,
-    AccountStorageRequirements,
-    Linking,
-    SlotAndKeys,
-    Word,
-  } = await import("@miden-sdk/miden-sdk");
+}): Promise<{
+  ownerWord: WordLiteral;
+  matches: boolean;
+  registryAccountId: string;
+  executeAccountId: string;
+}> {
+  const { Linking } = await import("@miden-sdk/miden-sdk");
 
   const configuredRegistryAccountId = getRegistryAccountId();
-  const registryAccountId = AccountId.fromHex(configuredRegistryAccountId);
-  const nameHash = new Word(wordLiteralToBigUint64Array(input.nameHashWord));
-  const storageRequirements = AccountStorageRequirements.fromSlotAndKeysArray([
-    new SlotAndKeys("mns::names", [nameHash]),
-  ]);
   const script = await input.client.compile.txScript({
     code: `use mns::registry
 begin
@@ -266,16 +260,22 @@ end`,
       },
     ],
   });
-  const stack = await input.client.transactions.executeProgram({
-    account: input.walletAccountId,
-    script,
-    foreignAccounts: [
-      {
-        id: registryAccountId.toString(),
-        storage: storageRequirements,
-      },
-    ],
-  });
+  const executeAccountId = configuredRegistryAccountId;
+  console.info("Resolve verification execute account", executeAccountId);
+
+  let stack;
+  try {
+    stack = await input.client.transactions.executeProgram({
+      account: executeAccountId,
+      script,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Resolve execute account ${executeAccountId} failed: ${message}`,
+    );
+  }
+
   const ownerWord = feltsToWordLiteral(
     Array.from({ length: stack.length() }, (_, index) => stack.get(index)),
   );
@@ -284,5 +284,6 @@ end`,
     ownerWord,
     matches: wordLiteralEquals(ownerWord, input.ownerWord),
     registryAccountId: configuredRegistryAccountId,
+    executeAccountId,
   };
 }
