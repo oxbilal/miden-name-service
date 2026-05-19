@@ -12,8 +12,26 @@ export const REGISTRY_ACCOUNT_ID =
   process.env.NEXT_PUBLIC_MIDEN_REGISTRY_ACCOUNT_ID ??
   EXAMPLE_REGISTRY_ACCOUNT_ID;
 
+const REGISTRY_ACCOUNT_ID_STORAGE_KEY = "mns:registryAccountId";
+
 export function getRegistryAccountId() {
+  if (typeof window !== "undefined") {
+    const storedAccountId = window.localStorage.getItem(
+      REGISTRY_ACCOUNT_ID_STORAGE_KEY,
+    );
+
+    if (storedAccountId) {
+      return storedAccountId;
+    }
+  }
+
   return REGISTRY_ACCOUNT_ID;
+}
+
+export function setRegistryAccountIdOverride(accountId: string) {
+  if (typeof window === "undefined") return;
+
+  window.localStorage.setItem(REGISTRY_ACCOUNT_ID_STORAGE_KEY, accountId);
 }
 
 export function createTemporaryWordFromText(value: string): WordLiteral {
@@ -92,7 +110,8 @@ export async function createRegistryPingTransaction(input: {
     "@miden-sdk/miden-sdk"
   );
 
-  const registryAccountId = AccountId.fromHex(REGISTRY_ACCOUNT_ID);
+  const configuredRegistryAccountId = getRegistryAccountId();
+  const registryAccountId = AccountId.fromHex(configuredRegistryAccountId);
   const component = await input.client.compile.component({
     code: MINIMAL_REGISTRY_COMPONENT_SOURCE,
     supportAllTypes: true,
@@ -122,7 +141,7 @@ end`,
 
   const transaction = Transaction.createCustomTransaction(
     input.walletAccountId,
-    REGISTRY_ACCOUNT_ID,
+    configuredRegistryAccountId,
     transactionRequest,
   );
   return Object.assign(transaction, {
@@ -145,7 +164,8 @@ export async function createRegistryRegisterTransaction(input: {
     TransactionRequestBuilder,
   } = await import("@miden-sdk/miden-sdk");
 
-  const registryAccountId = AccountId.fromHex(REGISTRY_ACCOUNT_ID);
+  const configuredRegistryAccountId = getRegistryAccountId();
+  const registryAccountId = AccountId.fromHex(configuredRegistryAccountId);
   const component = await input.client.compile.component({
     code: MINIMAL_REGISTRY_COMPONENT_SOURCE,
     supportAllTypes: true,
@@ -180,7 +200,7 @@ end`,
 
   const transaction = Transaction.createCustomTransaction(
     input.walletAccountId,
-    REGISTRY_ACCOUNT_ID,
+    configuredRegistryAccountId,
     transactionRequest,
   );
   return Object.assign(transaction, {
@@ -202,7 +222,8 @@ export async function verifyRegistryOwner(input: {
     Word,
   } = await import("@miden-sdk/miden-sdk");
 
-  const registryAccountId = AccountId.fromHex(REGISTRY_ACCOUNT_ID);
+  const configuredRegistryAccountId = getRegistryAccountId();
+  const registryAccountId = AccountId.fromHex(configuredRegistryAccountId);
   const nameHash = new Word(wordLiteralToBigUint64Array(input.nameHashWord));
   const storageRequirements = AccountStorageRequirements.fromSlotAndKeysArray([
     new SlotAndKeys("mns::names", [nameHash]),

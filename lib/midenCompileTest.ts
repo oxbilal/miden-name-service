@@ -48,6 +48,7 @@ export type MutableContractCompileResult = {
 
 export type LocalRegistryAccountResult = MutableContractCompileResult & {
   accountId: string;
+  publishTransactionId: string;
   storageMode: string;
 };
 
@@ -136,8 +137,6 @@ export async function createLocalRegistryAccount(
   const seed = crypto.getRandomValues(new Uint8Array(32));
   const auth = AuthSecretKey.rpoFalconWithRNG();
 
-  // Dev smoke test only: this creates a local contract account entry. The next
-  // registry step is confirming the account publication and invocation flow.
   const account = await client.accounts.create({
     type: AccountType.RegularAccountUpdatableCode,
     seed,
@@ -145,6 +144,16 @@ export async function createLocalRegistryAccount(
     components: [component],
     storage: StorageMode.Public,
   });
+  const publishScript = await client.compile.txScript({
+    code: "begin push.1 drop end",
+  });
+  const publishResult = await client.transactions.execute({
+    account,
+    script: publishScript,
+    waitForConfirmation: true,
+    timeout: 120_000,
+  });
+  await client.sync();
 
   const procedures = component
     .getProcedures()
@@ -152,6 +161,7 @@ export async function createLocalRegistryAccount(
 
   return {
     accountId: account.id().toString(),
+    publishTransactionId: publishResult.txId.toHex(),
     accountType: "AccountType.RegularAccountUpdatableCode",
     accountTypeValue: AccountType.RegularAccountUpdatableCode,
     storageMode: StorageMode.Public,

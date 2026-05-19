@@ -25,6 +25,7 @@ import {
   createRegistryRegisterTransaction,
   createSimpleTransactionScriptFallback,
   getRegistryAccountId,
+  setRegistryAccountIdOverride,
   verifyRegistryOwner,
 } from "@/lib/registryContract";
 import {
@@ -505,11 +506,15 @@ export default function MidenNameService() {
       midenClientRef.current = client;
 
       const result = await createLocalRegistryAccount(client);
+      setRegistryAccountIdOverride(result.accountId);
 
       setRegistryAccountStatus("success");
       setRegistryAccountMessage(
         [
           `registry account id: ${result.accountId}`,
+          `publish tx id: ${result.publishTransactionId}`,
+          `active registry config updated in this browser session`,
+          `NEXT_PUBLIC_MIDEN_REGISTRY_ACCOUNT_ID=${result.accountId}`,
           `${result.accountType} = ${result.accountTypeValue}`,
           `storage mode: ${result.storageMode}`,
           result.storageSlots?.length
