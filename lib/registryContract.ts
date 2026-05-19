@@ -32,6 +32,31 @@ function formatWordPush(word: WordLiteral) {
   return `push.${word.join(".")}`;
 }
 
+function wordLiteralToBigUint64Array(word: WordLiteral) {
+  return BigUint64Array.from(word.map((part) => BigInt(part)));
+}
+
+function feltsToWordLiteral(felts: unknown[]): WordLiteral {
+  if (felts.length < 4) {
+    throw new Error(`Resolve returned ${felts.length} felt(s), expected 4.`);
+  }
+
+  return felts.slice(0, 4).map((felt) => {
+    const value =
+      typeof felt === "object" &&
+      felt !== null &&
+      "asInt" in felt &&
+      typeof felt.asInt === "function"
+        ? felt.asInt()
+        : BigInt(String(felt));
+    return Number(value);
+  }) as WordLiteral;
+}
+
+function wordLiteralEquals(left: WordLiteral, right: WordLiteral) {
+  return left.every((part, index) => part === right[index]);
+}
+
 export async function createSimpleTransactionScriptFallback(input: {
   client: MidenClient;
   walletAccountId: string;
@@ -161,4 +186,57 @@ end`,
   return Object.assign(transaction, {
     registryRegisterProcedureHash: registerHash,
   });
+}
+
+export async function verifyRegistryOwner(input: {
+  client: MidenClient;
+  walletAccountId: string;
+  nameHashWord: WordLiteral;
+  ownerWord: WordLiteral;
+}): Promise<{ ownerWord: WordLiteral; matches: boolean }> {
+  const {
+    AccountId,
+    AccountStorageRequirements,
+    Linking,
+    SlotAndKeys,
+    Word,
+  } = await import("@miden-sdk/miden-sdk");
+
+  const registryAccountId = AccountId.fromHex(REGISTRY_ACCOUNT_ID);
+  const nameHash = new Word(wordLiteralToBigUint64Array(input.nameHashWord));
+  const storageRequirements = AccountStorageRequirements.fromSlotAndKeysArray([
+    new SlotAndKeys("mns::names", [nameHash]),
+  ]);
+  const script = await input.client.compile.txScript({
+    code: `use mns::registry
+begin
+    ${formatWordPush(input.nameHashWord)}
+    call.registry::resolve
+end`,
+    libraries: [
+      {
+        namespace: "mns::registry",
+        code: MINIMAL_REGISTRY_COMPONENT_SOURCE,
+        linking: Linking.Dynamic,
+      },
+    ],
+  });
+  const stack = await input.client.transactions.executeProgram({
+    account: input.walletAccountId,
+    script,
+    foreignAccounts: [
+      {
+        id: registryAccountId.toString(),
+        storage: storageRequirements,
+      },
+    ],
+  });
+  const ownerWord = feltsToWordLiteral(
+    Array.from({ length: stack.length() }, (_, index) => stack.get(index)),
+  );
+
+  return {
+    ownerWord,
+    matches: wordLiteralEquals(ownerWord, input.ownerWord),
+  };
 }

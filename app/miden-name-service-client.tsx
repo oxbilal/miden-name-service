@@ -25,6 +25,7 @@ import {
   createRegistryRegisterTransaction,
   createSimpleTransactionScriptFallback,
   getRegistryAccountId,
+  verifyRegistryOwner,
 } from "@/lib/registryContract";
 import {
   resolveName,
@@ -595,20 +596,39 @@ export default function MidenNameService() {
     try {
       const client = midenClientRef.current ?? (await createMidenClient());
       midenClientRef.current = client;
+      const nameHashWord = createTemporaryWordFromText(nextName);
+      const ownerWord = createTemporaryWordFromText(walletAccountId);
       const transaction = await createRegistryRegisterTransaction({
         client,
         walletAccountId,
-        nameHashWord: createTemporaryWordFromText(nextName),
-        ownerWord: createTemporaryWordFromText(walletAccountId),
+        nameHashWord,
+        ownerWord,
       });
       const transactionId = await requestTransaction(transaction);
+      let verificationMessage = "";
+
+      try {
+        const verification = await verifyRegistryOwner({
+          client,
+          walletAccountId,
+          nameHashWord,
+          ownerWord,
+        });
+        verificationMessage = verification.matches
+          ? " Verified owner."
+          : ` Resolve returned owner word ${verification.ownerWord.join(".")}, which does not match the connected wallet.`;
+      } catch (verifyError) {
+        verificationMessage = ` Resolve verification blocked: ${
+          verifyError instanceof Error ? verifyError.message : String(verifyError)
+        }`;
+      }
 
       setRegisterName(nextName);
       setRegisterMessageType("success");
       setRegisterMessage(
         transactionId
-          ? `Wallet transaction id: ${transactionId}.`
-          : "Wallet accepted the registry register transaction request.",
+          ? `Wallet transaction id: ${transactionId}.${verificationMessage}`
+          : `Wallet accepted the registry register transaction request.${verificationMessage}`,
       );
     } catch (error) {
       setRegisterMessageType("error");
