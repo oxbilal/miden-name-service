@@ -22,7 +22,7 @@ import { consumeFirstAvailableNote } from "@/lib/midenTransactions";
 import {
   createTemporaryWordFromText,
   createRegistryPingTransaction,
-  createRegistryRegisterPlaceholderTransaction,
+  createRegistryRegisterTransaction,
   createSimpleTransactionScriptFallback,
   getRegistryAccountId,
 } from "@/lib/registryContract";
@@ -452,11 +452,11 @@ export default function MidenNameService() {
     }
   }
 
-  async function handleTestRegisterPlaceholderTransaction() {
+  async function handleTestRegisterTransaction() {
     if (!walletAccountId) {
       setRegistryProcedureStatus("error");
       setRegistryProcedureMessage(
-        "Connect a Miden wallet before requesting a register placeholder transaction.",
+        "Connect a Miden wallet before requesting a register transaction.",
       );
       return;
     }
@@ -475,7 +475,7 @@ export default function MidenNameService() {
     try {
       const client = midenClientRef.current ?? (await createMidenClient());
       midenClientRef.current = client;
-      const transaction = await createRegistryRegisterPlaceholderTransaction({
+      const transaction = await createRegistryRegisterTransaction({
         client,
         walletAccountId,
       });
@@ -484,8 +484,8 @@ export default function MidenNameService() {
       setRegistryProcedureStatus("success");
       setRegistryProcedureMessage(
         transactionId
-          ? `Register placeholder wallet transaction id: ${transactionId}.`
-          : "Wallet accepted the register placeholder transaction request.",
+          ? `Register wallet transaction id: ${transactionId}.`
+          : "Wallet accepted the register transaction request.",
       );
     } catch (error) {
       setRegistryProcedureStatus("error");
@@ -595,7 +595,7 @@ export default function MidenNameService() {
     try {
       const client = midenClientRef.current ?? (await createMidenClient());
       midenClientRef.current = client;
-      const transaction = await createRegistryRegisterPlaceholderTransaction({
+      const transaction = await createRegistryRegisterTransaction({
         client,
         walletAccountId,
         nameHashWord: createTemporaryWordFromText(nextName),
@@ -607,8 +607,8 @@ export default function MidenNameService() {
       setRegisterMessageType("success");
       setRegisterMessage(
         transactionId
-          ? `Wallet transaction id: ${transactionId}. Placeholder register was requested; registry storage is not implemented yet.`
-          : "Wallet accepted the placeholder register request. Registry storage is not implemented yet.",
+          ? `Wallet transaction id: ${transactionId}.`
+          : "Wallet accepted the registry register transaction request.",
       );
     } catch (error) {
       setRegisterMessageType("error");
@@ -888,8 +888,8 @@ export default function MidenNameService() {
                   <span className="font-mono">
                     {shortenAddress(registryAccountId)}
                   </span>
-                  {" "}ping or placeholder register procedure through a wrapped
-                  transaction script. No storage write or name registration yet.
+                  {" "}ping or register procedure through a wrapped transaction
+                  script.
                 </p>
               </div>
 
@@ -918,13 +918,13 @@ export default function MidenNameService() {
                 </button>
                 <button
                   type="button"
-                  onClick={handleTestRegisterPlaceholderTransaction}
+                  onClick={handleTestRegisterTransaction}
                   disabled={
                     registryProcedureStatus === "requesting" || !walletAccountId
                   }
                   className="rounded-2xl border border-orange-200/10 bg-orange-100/5 px-4 py-2 text-sm font-semibold text-orange-100 hover:bg-orange-100/10 disabled:cursor-not-allowed disabled:text-orange-100/40"
                 >
-                  Test register placeholder
+                  Test register
                 </button>
               </div>
             </div>
@@ -1143,8 +1143,7 @@ export default function MidenNameService() {
                   <span className="font-mono">
                     {shortenAddress(walletAccountId)}
                   </span>
-                  . This sends a placeholder register transaction; registry
-                  storage is not implemented yet.
+                  . This sends a registry register transaction.
                 </p>
               ) : (
                 <p className="mt-4 rounded-2xl bg-orange-100/5 px-4 py-3 text-sm text-orange-100/70">

@@ -3,12 +3,6 @@ import { Transaction } from "@miden-sdk/miden-wallet-adapter-base";
 import { MINIMAL_REGISTRY_COMPONENT_SOURCE } from "@/lib/midenCompileTest";
 import type { MidenClient } from "@/lib/midenClient";
 
-type RegistryRegisterInput = {
-  name: string;
-  owner: string;
-  target: string;
-};
-
 type WordLiteral = [number, number, number, number];
 
 export const EXAMPLE_REGISTRY_ACCOUNT_ID =
@@ -17,10 +11,6 @@ export const EXAMPLE_REGISTRY_ACCOUNT_ID =
 export const REGISTRY_ACCOUNT_ID =
   process.env.NEXT_PUBLIC_MIDEN_REGISTRY_ACCOUNT_ID ??
   EXAMPLE_REGISTRY_ACCOUNT_ID;
-
-export const registryContractBlocker =
-  "Registry transaction blocked at the configured registry account boundary. " +
-  "The SDK registry account id is configured, but the confirmed transaction script for invoking register(nameHash, owner) is still missing, and MASM StorageMap write syntax is still unconfirmed.";
 
 export function getRegistryAccountId() {
   return REGISTRY_ACCOUNT_ID;
@@ -115,7 +105,7 @@ end`,
   });
 }
 
-export async function createRegistryRegisterPlaceholderTransaction(input: {
+export async function createRegistryRegisterTransaction(input: {
   client: MidenClient;
   walletAccountId: string;
   nameHashWord?: WordLiteral;
@@ -137,7 +127,7 @@ export async function createRegistryRegisterPlaceholderTransaction(input: {
   });
   const registerHash = component.getProcedureHash("register");
   const nameHashWord =
-    input.nameHashWord ?? createTemporaryWordFromText("placeholder.miden");
+    input.nameHashWord ?? createTemporaryWordFromText("example.miden");
   const ownerWord =
     input.ownerWord ?? createTemporaryWordFromText(input.walletAccountId);
   const script = await input.client.compile.txScript({
@@ -171,26 +161,4 @@ end`,
   return Object.assign(transaction, {
     registryRegisterProcedureHash: registerHash,
   });
-}
-
-export async function createRegistryRegisterTransaction(
-  input: RegistryRegisterInput,
-): Promise<MidenTransaction> {
-  if (!REGISTRY_ACCOUNT_ID) {
-    throw new Error(
-      `${registryContractBlocker} Requested registration: ${input.name} -> ${input.owner}.`,
-    );
-  }
-
-  const { AccountId } = await import("@miden-sdk/miden-sdk");
-  const registryAccountId = AccountId.fromHex(REGISTRY_ACCOUNT_ID);
-
-  throw new Error(
-    [
-      `Registry account ${registryAccountId.toString()} is configured and parses with AccountId.fromHex.`,
-      "Register is not sent because the confirmed transaction script for targeting the registry register procedure is missing.",
-      "Still blocked: normalized name -> Word hash, wallet account id -> owner Word, procedure invocation script, and MASM StorageMap write syntax for mns::names.",
-      `Requested registration: ${input.name} owner ${input.owner} target ${input.target}.`,
-    ].join(" "),
-  );
 }
