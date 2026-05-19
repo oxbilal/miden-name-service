@@ -6,7 +6,10 @@ import type { MidenClient } from "@/lib/midenClient";
 type WordLiteral = [number, number, number, number];
 
 export const EXAMPLE_REGISTRY_ACCOUNT_ID =
-  "0x380a8d8b0b61d21013bbfa8ccc56e5";
+  "0xa5eaee5da2353310386c93fe4ed69b";
+const STALE_REGISTRY_ACCOUNT_IDS = new Set([
+  "0x380a8d8b0b61d21013bbfa8ccc56e5",
+]);
 
 export const REGISTRY_ACCOUNT_ID =
   process.env.NEXT_PUBLIC_MIDEN_REGISTRY_ACCOUNT_ID ??
@@ -21,11 +24,32 @@ export function getRegistryAccountId() {
     );
 
     if (storedAccountId) {
+      if (STALE_REGISTRY_ACCOUNT_IDS.has(storedAccountId)) {
+        window.localStorage.setItem(
+          REGISTRY_ACCOUNT_ID_STORAGE_KEY,
+          REGISTRY_ACCOUNT_ID,
+        );
+        return REGISTRY_ACCOUNT_ID;
+      }
+
       return storedAccountId;
     }
   }
 
   return REGISTRY_ACCOUNT_ID;
+}
+
+export function getRegistryAccountIdSource() {
+  if (
+    typeof window !== "undefined" &&
+    window.localStorage.getItem(REGISTRY_ACCOUNT_ID_STORAGE_KEY)
+  ) {
+    return "localStorage";
+  }
+
+  return process.env.NEXT_PUBLIC_MIDEN_REGISTRY_ACCOUNT_ID
+    ? "env"
+    : "default";
 }
 
 export function setRegistryAccountIdOverride(accountId: string) {
@@ -213,7 +237,7 @@ export async function verifyRegistryOwner(input: {
   walletAccountId: string;
   nameHashWord: WordLiteral;
   ownerWord: WordLiteral;
-}): Promise<{ ownerWord: WordLiteral; matches: boolean }> {
+}): Promise<{ ownerWord: WordLiteral; matches: boolean; registryAccountId: string }> {
   const {
     AccountId,
     AccountStorageRequirements,
@@ -259,5 +283,6 @@ end`,
   return {
     ownerWord,
     matches: wordLiteralEquals(ownerWord, input.ownerWord),
+    registryAccountId: configuredRegistryAccountId,
   };
 }

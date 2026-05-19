@@ -25,6 +25,7 @@ import {
   createRegistryRegisterTransaction,
   createSimpleTransactionScriptFallback,
   getRegistryAccountId,
+  getRegistryAccountIdSource,
   setRegistryAccountIdOverride,
   verifyRegistryOwner,
 } from "@/lib/registryContract";
@@ -175,6 +176,7 @@ export default function MidenNameService() {
     midenClientRef.current && midenAccountId ? "miden" : "local";
   const activeAccountId = walletAccountId ?? midenAccountId;
   const registryAccountId = getRegistryAccountId();
+  const registryAccountIdSource = getRegistryAccountIdSource();
   const searchedName = useMemo(() => normalizeName(searchResult), [searchResult]);
   const isSearchValid = searchResult ? isValidName(searchResult) : false;
   const isTaken = searchedName ? unavailableNames.includes(searchedName) : false;
@@ -391,6 +393,7 @@ export default function MidenNameService() {
     try {
       const client = midenClientRef.current ?? (await createMidenClient());
       midenClientRef.current = client;
+      const usedRegistryAccountId = getRegistryAccountId();
       const transaction = await createRegistryPingTransaction({
         client,
         walletAccountId,
@@ -400,8 +403,8 @@ export default function MidenNameService() {
       setRegistryProcedureStatus("success");
       setRegistryProcedureMessage(
         transactionId
-          ? `Registry ping wallet transaction id: ${transactionId}.`
-          : "Wallet accepted the registry ping transaction request.",
+          ? `Registry ping wallet transaction id: ${transactionId}. Registry: ${usedRegistryAccountId}.`
+          : `Wallet accepted the registry ping transaction request. Registry: ${usedRegistryAccountId}.`,
       );
     } catch (error) {
       setRegistryProcedureStatus("error");
@@ -477,6 +480,7 @@ export default function MidenNameService() {
     try {
       const client = midenClientRef.current ?? (await createMidenClient());
       midenClientRef.current = client;
+      const usedRegistryAccountId = getRegistryAccountId();
       const transaction = await createRegistryRegisterTransaction({
         client,
         walletAccountId,
@@ -486,8 +490,8 @@ export default function MidenNameService() {
       setRegistryProcedureStatus("success");
       setRegistryProcedureMessage(
         transactionId
-          ? `Register wallet transaction id: ${transactionId}.`
-          : "Wallet accepted the register transaction request.",
+          ? `Register wallet transaction id: ${transactionId}. Registry: ${usedRegistryAccountId}.`
+          : `Wallet accepted the register transaction request. Registry: ${usedRegistryAccountId}.`,
       );
     } catch (error) {
       setRegistryProcedureStatus("error");
@@ -601,6 +605,7 @@ export default function MidenNameService() {
     try {
       const client = midenClientRef.current ?? (await createMidenClient());
       midenClientRef.current = client;
+      const usedRegistryAccountId = getRegistryAccountId();
       const nameHashWord = createTemporaryWordFromText(nextName);
       const ownerWord = createTemporaryWordFromText(walletAccountId);
       const transaction = await createRegistryRegisterTransaction({
@@ -610,7 +615,7 @@ export default function MidenNameService() {
         ownerWord,
       });
       const transactionId = await requestTransaction(transaction);
-      let verificationMessage = "";
+      let verificationMessage = ` Resolve registry: ${usedRegistryAccountId}.`;
 
       try {
         const verification = await verifyRegistryOwner({
@@ -620,10 +625,10 @@ export default function MidenNameService() {
           ownerWord,
         });
         verificationMessage = verification.matches
-          ? " Verified owner."
-          : ` Resolve returned owner word ${verification.ownerWord.join(".")}, which does not match the connected wallet.`;
+          ? ` Resolve registry: ${verification.registryAccountId}. Verified owner.`
+          : ` Resolve registry: ${verification.registryAccountId}. Resolve returned owner word ${verification.ownerWord.join(".")}, which does not match the connected wallet.`;
       } catch (verifyError) {
-        verificationMessage = ` Resolve verification blocked: ${
+        verificationMessage = ` Resolve registry: ${usedRegistryAccountId}. Resolve verification blocked: ${
           verifyError instanceof Error ? verifyError.message : String(verifyError)
         }`;
       }
@@ -632,8 +637,8 @@ export default function MidenNameService() {
       setRegisterMessageType("success");
       setRegisterMessage(
         transactionId
-          ? `Wallet transaction id: ${transactionId}.${verificationMessage}`
-          : `Wallet accepted the registry register transaction request.${verificationMessage}`,
+          ? `Wallet transaction id: ${transactionId}. Register registry: ${usedRegistryAccountId}.${verificationMessage}`
+          : `Wallet accepted the registry register transaction request. Register registry: ${usedRegistryAccountId}.${verificationMessage}`,
       );
     } catch (error) {
       setRegisterMessageType("error");
@@ -913,8 +918,8 @@ export default function MidenNameService() {
                   <span className="font-mono">
                     {shortenAddress(registryAccountId)}
                   </span>
-                  {" "}ping or register procedure through a wrapped transaction
-                  script.
+                  {" "}from {registryAccountIdSource} for ping or register
+                  through a wrapped transaction script.
                 </p>
               </div>
 
@@ -1164,7 +1169,8 @@ export default function MidenNameService() {
                   <span className="font-mono">
                     {shortenAddress(registryAccountId)}
                   </span>{" "}
-                  from wallet{" "}
+                  from {registryAccountIdSource}. Resolve verification uses the
+                  same registry id. Wallet:{" "}
                   <span className="font-mono">
                     {shortenAddress(walletAccountId)}
                   </span>
